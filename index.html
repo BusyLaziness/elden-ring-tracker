@@ -1,0 +1,3744 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="preconnect" href="https://googleapis.com">
+<link rel="preconnect" href="https://gstatic.com" crossorigin>
+<link href="https://googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<title>Реестр снаряжения Междуземья</title>
+<style>
+  :root {
+    --bg-void: #070605;
+    --bg-panel: rgba(18, 16, 12, 0.86);
+    --bg-card: rgba(22, 19, 14, 0.86);
+    --bg-card-hover: rgba(32, 28, 20, 0.94);
+    --gold: #c8a86b;
+    --gold-bright: #f2d593;
+    --gold-glow: rgba(240, 198, 116, 0.45);
+    --gold-dim: #6e5932;
+    --border: rgba(110, 89, 50, 0.45);
+    --border-bright: rgba(200, 168, 107, 0.72);
+    --text-main: #e6dfd1;
+    --text-muted: #988e7b;
+    --font-serif: 'Palatino Linotype', 'Book Antiqua', 'Georgia', 'Times New Roman', serif;
+    --font-sans: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background-color: var(--bg-void);
+    color: var(--text-main);
+    font-family: var(--font-sans);
+    min-height: 100vh;
+    padding-bottom: 50px;
+    position: relative;
+    overflow-x: visible;
+  }
+
+  #graceBgCanvas {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    z-index: -2;
+    pointer-events: none;
+  }
+  .bg-vignette {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(circle at 50% 42%, transparent 25%, rgba(6, 5, 4, 0.72) 85%, rgba(4, 3, 2, 0.92) 100%);
+    z-index: -1;
+    pointer-events: none;
+  }
+
+  header {
+    background: linear-gradient(180deg, rgba(16, 14, 10, 0.94) 0%, rgba(12, 10, 8, 0.88) 100%);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--gold-dim);
+    padding: 16px 24px 0;
+    position: sticky;
+    top: 0;
+    z-index: 120;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.85);
+    transition: padding 0.25s ease, background 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  }
+  header.is-scrolled {
+    padding-top: 10px;
+    background: rgba(12, 10, 8, 0.97);
+    border-bottom-color: var(--gold);
+    box-shadow: 0 10px 36px rgba(0, 0, 0, 0.95), 0 1px 12px rgba(200, 168, 107, 0.16);
+  }
+  header.is-scrolled .header-top { padding-bottom: 8px; }
+
+  header::after {
+    content: '';
+    display: block;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold), transparent);
+    opacity: 0.55;
+  }
+
+  .header-top {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding-bottom: 14px;
+  }
+
+  .brand {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .rune-emblem {
+    width: 32px;
+    height: 32px;
+    border: 1.5px solid var(--gold);
+    transform: rotate(45deg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 0 14px var(--gold-glow), inset 0 0 8px rgba(200, 168, 107, 0.25);
+    flex-shrink: 0;
+    position: relative;
+  }
+  .rune-emblem::before {
+    content: '';
+    width: 18px;
+    height: 18px;
+    border: 1px solid rgba(242, 213, 147, 0.65);
+    border-radius: 50%;
+  }
+  .rune-emblem::after {
+    content: '';
+    position: absolute;
+    width: 1px;
+    height: 26px;
+    background: var(--gold-bright);
+    transform: rotate(-45deg);
+  }
+
+  h1 {
+    font-family: var(--font-serif);
+    font-size: 1.38rem;
+    letter-spacing: 0.16em;
+    color: var(--gold-bright);
+    text-transform: uppercase;
+    font-weight: 400;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 0.9), 0 0 18px rgba(200, 168, 107, 0.28);
+  }
+
+  .header-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .btn-util {
+    background: rgba(24, 21, 16, 0.9);
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    padding: 7px 13px;
+    font-family: var(--font-serif);
+    font-size: 0.84rem;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    border-radius: 2px;
+    transition: border-color 0.2s, color 0.2s, background 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .btn-util:hover {
+    border-color: var(--gold);
+    color: var(--gold-bright);
+    background: rgba(42, 36, 25, 0.96);
+    box-shadow: 0 0 12px rgba(200, 168, 107, 0.22);
+  }
+  .btn-util.sprites-ok {
+    border-color: #547a4f;
+    color: #b4e3af;
+  }
+
+  .help-wrap {
+    position: relative;
+    display: inline-block;
+  }
+  .help-btn {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid var(--gold-dim);
+    background: rgba(24, 21, 16, 0.92);
+    color: var(--gold-bright);
+    font-family: var(--font-serif);
+    font-weight: bold;
+    font-size: 0.95rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+  }
+  .help-btn:hover, .help-wrap.active .help-btn {
+    border-color: var(--gold-bright);
+    background: rgba(48, 41, 29, 0.96);
+    box-shadow: 0 0 12px var(--gold-glow);
+  }
+  .help-popover {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 40px;
+    width: 370px;
+    max-width: 90vw;
+    background: rgba(18, 16, 12, 0.98);
+    border: 1px solid var(--gold);
+    border-radius: 2px;
+    padding: 16px;
+    box-shadow: 0 14px 40px rgba(0, 0, 0, 0.95);
+    z-index: 250;
+    font-size: 0.84rem;
+    line-height: 1.55;
+    color: var(--text-main);
+  }
+  .help-wrap:hover .help-popover,
+  .help-wrap.active .help-popover {
+    display: block;
+  }
+  .help-popover h4 {
+    color: var(--gold-bright);
+    font-family: var(--font-serif);
+    letter-spacing: 0.08em;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border);
+    text-transform: uppercase;
+    font-size: 0.86rem;
+    font-weight: normal;
+  }
+  .help-popover ul {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .help-popover li strong {
+    color: var(--gold);
+    font-family: var(--font-serif);
+  }
+
+  .tabs-bar {
+    max-width: 1280px;
+    margin: 0 auto;
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+  }
+  .tab-btn {
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid transparent;
+    color: var(--text-muted);
+    padding: 10px 18px;
+    font-family: var(--font-serif);
+    font-size: 0.95rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: 0.2s;
+    white-space: nowrap;
+  }
+  .tab-btn:hover { color: var(--text-main); }
+  .tab-btn.active {
+    color: var(--gold-bright);
+    border-bottom-color: var(--gold-bright);
+    text-shadow: 0 0 10px var(--gold-glow);
+    background: linear-gradient(180deg, transparent 0%, rgba(200, 168, 107, 0.1) 100%);
+  }
+
+  .container {
+    max-width: 1280px;
+    margin: 22px auto 0;
+    padding: 0 20px;
+  }
+
+  .toolbar {
+    background: var(--bg-panel);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid var(--border);
+    box-shadow: inset 0 0 24px rgba(0, 0, 0, 0.65), 0 6px 24px rgba(0, 0, 0, 0.6);
+    border-radius: 2px;
+    padding: 14px 18px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 22px;
+    position: sticky;
+    top: 96px;
+    z-index: 110;
+    transition: top 0.25s ease, padding 0.25s ease, background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+  }
+  .toolbar.is-scrolled {
+    padding: 10px 16px;
+    background: rgba(15, 13, 10, 0.96);
+    border-color: var(--border-bright);
+    box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.75), 0 12px 30px rgba(0, 0, 0, 0.92);
+  }
+
+  .toolbar::before, .toolbar::after {
+    content: '';
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+  }
+  .toolbar::before { top: 0; }
+  .toolbar::after { bottom: 0; }
+
+  .filter-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .pill {
+    background: rgba(16, 14, 11, 0.9);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 6px 13px;
+    border-radius: 2px;
+    font-family: var(--font-serif);
+    font-size: 0.84rem;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: 0.18s;
+  }
+  .pill:hover { border-color: var(--gold-dim); color: var(--text-main); }
+  .pill.active {
+    background: linear-gradient(180deg, rgba(54, 45, 29, 0.95) 0%, rgba(32, 26, 17, 0.98) 100%);
+    border-color: var(--gold);
+    color: var(--gold-bright);
+    box-shadow: 0 0 10px rgba(200, 168, 107, 0.2);
+  }
+
+  .search-box {
+    background: rgba(10, 9, 7, 0.9);
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    padding: 7px 13px;
+    border-radius: 2px;
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    min-width: 260px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-box:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 10px rgba(200, 168, 107, 0.18);
+  }
+
+  .progress-wrap {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-family: var(--font-serif);
+    font-size: 0.86rem;
+    letter-spacing: 0.04em;
+    color: var(--gold);
+    padding-top: 4px;
+  }
+  .er-bar-outer {
+    flex: 1;
+    height: 12px;
+    background: rgba(8, 7, 5, 0.94);
+    border: 1px solid var(--gold-dim);
+    padding: 2px;
+    position: relative;
+    box-shadow: inset 0 1px 4px #000, 0 0 8px rgba(0, 0, 0, 0.8);
+    display: flex;
+    align-items: center;
+  }
+  .er-bar-outer::before, .er-bar-outer::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    background: var(--gold);
+    border: 1px solid #1a150e;
+    transform: rotate(45deg);
+    z-index: 2;
+  }
+  .er-bar-outer::before { left: -4px; }
+  .er-bar-outer::after { right: -4px; }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #5c4620 0%, #a88644 50%, #f5d896 96%, #fff5d6 100%);
+    width: 0%;
+    transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 0 10px rgba(242, 213, 147, 0.45);
+  }
+  .progress-pct {
+    min-width: 42px;
+    text-align: right;
+    color: var(--gold-bright);
+    font-weight: bold;
+  }
+
+  .group-header {
+    font-family: var(--font-serif);
+    color: var(--gold-bright);
+    font-size: 1.06rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: normal;
+    margin: 28px 0 14px;
+    padding: 0 4px 8px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    text-shadow: 0 2px 6px #000;
+    position: relative;
+  }
+  .group-header::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    bottom: -1px;
+    width: 180px;
+    height: 1px;
+    background: linear-gradient(90deg, var(--gold), transparent);
+  }
+
+  .cards-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .armor-card {
+    background: linear-gradient(135deg, rgba(25, 22, 16, 0.88) 0%, rgba(18, 16, 12, 0.85) 100%);
+    border: 1px solid var(--border);
+    box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.6), 0 4px 16px rgba(0, 0, 0, 0.55);
+    border-radius: 2px;
+    padding: 13px 16px;
+    display: grid;
+    grid-template-columns: auto 1fr 230px;
+    gap: 18px;
+    align-items: center;
+    position: relative;
+    content-visibility: auto;
+    contain-intrinsic-size: 158px;
+    transition: border-color 0.2s, background 0.2s;
+  }
+  .armor-card::before, .armor-card::after {
+    content: '';
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    border-color: var(--gold-dim);
+    border-style: solid;
+    pointer-events: none;
+    transition: border-color 0.2s;
+  }
+  .armor-card::before { top: 3px; left: 3px; border-width: 1px 0 0 1px; }
+  .armor-card::after { bottom: 3px; right: 3px; border-width: 0 1px 1px 0; }
+
+  .armor-card:hover {
+    background: linear-gradient(135deg, rgba(35, 30, 22, 0.94) 0%, rgba(24, 21, 16, 0.92) 100%);
+    border-color: var(--border-bright);
+  }
+  .armor-card:hover::before, .armor-card:hover::after {
+    border-color: var(--gold);
+  }
+  .armor-card.completed {
+    border-color: rgba(114, 156, 101, 0.68);
+    background: linear-gradient(90deg, rgba(64, 96, 58, 0.26) 0%, rgba(22, 19, 14, 0.88) 55%);
+    box-shadow: inset 0 0 20px rgba(96, 148, 84, 0.12), 0 4px 16px rgba(0, 0, 0, 0.55);
+  }
+
+  .card-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .set-diamond {
+    width: 26px;
+    height: 26px;
+    border: 1.5px solid var(--gold-dim);
+    background: radial-gradient(circle, #1a1610 0%, #090806 100%);
+    transform: rotate(45deg);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+    position: relative;
+    box-shadow: inset 0 0 5px #000;
+  }
+  .set-diamond::before {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border: 1px solid rgba(200, 168, 107, 0.35);
+  }
+  .set-diamond:hover {
+    border-color: var(--gold-bright);
+    box-shadow: 0 0 12px var(--gold-glow);
+  }
+  .set-diamond.checked {
+    background: radial-gradient(circle, #fff3cf 0%, var(--gold) 70%, #8f6f34 100%);
+    border-color: #fff2cc;
+    box-shadow: 0 0 14px var(--gold-glow), inset 0 0 4px rgba(255, 255, 255, 0.6);
+  }
+  .set-diamond.checked::before {
+    border-color: rgba(40, 28, 10, 0.55);
+  }
+  .set-diamond.checked::after {
+    content: '✦';
+    transform: rotate(-45deg);
+    color: #171208;
+    font-size: 13px;
+    line-height: 1;
+  }
+
+  .portrait-frame {
+    width: 96px;
+    height: 128px;
+    background: radial-gradient(circle at center, rgba(42, 37, 27, 0.88) 0%, rgba(10, 9, 7, 0.96) 100%);
+    border: 1px solid var(--gold-dim);
+    box-shadow: inset 0 0 14px #000, 0 0 0 1px rgba(0, 0, 0, 0.8);
+    border-radius: 2px;
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .portrait-frame::after {
+    content: '';
+    position: absolute;
+    inset: 2px;
+    border: 1px solid rgba(200, 168, 107, 0.18);
+    pointer-events: none;
+  }
+  .portrait-frame img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+  .no-photo-stub {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    color: var(--text-muted);
+    font-family: var(--font-serif);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-align: center;
+    padding: 6px;
+    background: radial-gradient(circle, rgba(32,28,20,0.9) 0%, rgba(10,9,7,0.98) 100%);
+  }
+  .no-photo-stub::before {
+    content: '❖';
+    font-size: 1.25rem;
+    color: var(--gold-dim);
+  }
+
+  .card-center {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .title-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+  }
+  .set-title {
+    font-family: var(--font-serif);
+    font-size: 1.12rem;
+    letter-spacing: 0.03em;
+    color: var(--gold-bright);
+    font-weight: normal;
+    text-shadow: 0 1px 4px #000;
+  }
+  .badge {
+    font-family: var(--font-serif);
+    font-size: 0.72rem;
+    padding: 2px 9px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+  }
+  .badge-farm { background: rgba(184, 114, 62, 0.22); color: #e6a370; border: 1px solid rgba(184, 114, 62, 0.45); }
+  .badge-buy { background: rgba(84, 132, 176, 0.22); color: #90bfe8; border: 1px solid rgba(84, 132, 176, 0.45); }
+  .badge-loot { background: rgba(98, 150, 95, 0.22); color: #9fd69c; border: 1px solid rgba(98, 150, 95, 0.45); }
+  .badge-reward { background: rgba(142, 102, 179, 0.22); color: #c7a6e8; border: 1px solid rgba(142, 102, 179, 0.45); }
+
+  .action-links {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .btn-link {
+    background: rgba(16, 14, 11, 0.9);
+    border: 1px solid var(--border);
+    color: var(--gold);
+    text-decoration: none;
+    font-family: var(--font-serif);
+    font-size: 0.8rem;
+    letter-spacing: 0.03em;
+    padding: 4px 10px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: 0.18s;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+  }
+  .btn-link:hover {
+    border-color: var(--gold);
+    background: rgba(38, 33, 24, 0.96);
+    color: var(--gold-bright);
+    box-shadow: 0 0 8px rgba(200, 168, 107, 0.2);
+  }
+  .guide-text {
+    font-size: 0.87rem;
+    color: var(--text-main);
+    line-height: 1.5;
+  }
+  .guide-text b {
+    color: #f0e6d2;
+    font-weight: 600;
+  }
+
+  .card-right {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-left: 1px solid var(--border);
+    padding-left: 16px;
+  }
+  .slot-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    font-family: var(--font-serif);
+    font-size: 0.85rem;
+    letter-spacing: 0.03em;
+    color: var(--text-muted);
+    padding: 4px 7px;
+    border-radius: 2px;
+    user-select: none;
+    transition: 0.15s;
+  }
+  .slot-row:hover {
+    background: rgba(200, 168, 107, 0.1);
+    color: var(--text-main);
+  }
+  .slot-row.owned {
+    color: var(--gold-bright);
+    text-shadow: 0 0 8px rgba(200, 168, 107, 0.22);
+  }
+  .slot-row.na {
+    opacity: 0.34;
+    cursor: not-allowed;
+  }
+
+  .rune-box {
+    width: 14px;
+    height: 14px;
+    border: 1px solid var(--gold-dim);
+    transform: rotate(45deg);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    background: #0c0a08;
+    box-shadow: inset 0 0 3px #000;
+    transition: 0.18s;
+  }
+  .slot-row:not(.na):hover .rune-box {
+    border-color: var(--gold);
+  }
+  .slot-row.owned .rune-box {
+    background: radial-gradient(circle, #fff2cc 0%, var(--gold) 85%);
+    border-color: #fff2cc;
+    box-shadow: 0 0 8px var(--gold-glow);
+  }
+  .slot-row.owned .rune-box::after {
+    content: '';
+    width: 5px;
+    height: 5px;
+    background: #1f1709;
+  }
+
+  .placeholder-box {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 52px 24px;
+    text-align: center;
+    color: var(--text-muted);
+  }
+  .placeholder-box h3 {
+    color: var(--gold-bright);
+    font-family: var(--font-serif);
+    font-weight: normal;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+
+  .author-footer {
+    max-width: 1280px;
+    margin: 46px auto 0;
+    padding: 0 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    font-family: var(--font-serif);
+    font-size: 0.78rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    opacity: 0.78;
+  }
+  .author-footer::before, .author-footer::after {
+    content: '';
+    height: 1px;
+    width: 120px;
+    background: linear-gradient(90deg, transparent, var(--gold-dim), transparent);
+  }
+  .author-rune {
+    width: 8px;
+    height: 8px;
+    border: 1px solid var(--gold);
+    transform: rotate(45deg);
+    box-shadow: 0 0 6px var(--gold-glow);
+    flex-shrink: 0;
+  }
+  .author-footer span {
+    color: var(--gold);
+  }
+
+  .toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 999;
+    pointer-events: none;
+  }
+  .toast {
+    background: linear-gradient(90deg, rgba(16, 14, 10, 0.97) 0%, rgba(28, 24, 17, 0.97) 100%);
+    border-top: 1px solid var(--gold);
+    border-bottom: 1px solid var(--gold);
+    border-left: 3px solid var(--gold-bright);
+    border-right: 1px solid var(--gold-dim);
+    color: var(--gold-bright);
+    font-family: var(--font-serif);
+    letter-spacing: 0.04em;
+    padding: 11px 18px;
+    font-size: 0.88rem;
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.9), 0 0 14px rgba(200, 168, 107, 0.18);
+    animation: slideIn 0.22s ease;
+  }
+  @keyframes slideIn {
+    from { transform: translateX(22px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  .modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.84);
+    z-index: 500;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+  }
+  .modal-backdrop.open { display: flex; }
+  .modal {
+    background: rgba(20, 18, 13, 0.98);
+    border: 1px solid var(--gold);
+    padding: 22px;
+    border-radius: 2px;
+    width: 500px;
+    max-width: 100%;
+    box-shadow: 0 16px 48px #000;
+  }
+  .modal h3 {
+    color: var(--gold-bright);
+    font-family: var(--font-serif);
+    font-weight: normal;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .modal textarea {
+    width: 100%;
+    height: 110px;
+    background: #0a0907;
+    border: 1px solid var(--border);
+    color: var(--text-main);
+    padding: 8px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    margin: 10px 0;
+  }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+
+  @media (max-width: 820px) {
+    .armor-card { grid-template-columns: 1fr; }
+    .card-right {
+      border-left: none;
+      border-top: 1px solid var(--border);
+      padding-left: 0;
+      padding-top: 10px;
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+  }
+
+  .global-progress-pill {
+    background: rgba(24, 21, 16, 0.92);
+    border: 1px solid var(--gold-dim);
+    padding: 6px 13px;
+    border-radius: 2px;
+    font-family: var(--font-serif);
+    font-size: 0.84rem;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .global-progress-pill strong {
+    color: var(--gold-bright);
+    font-weight: normal;
+  }
+  .tab-count {
+    font-size: 0.76rem;
+    opacity: 0.78;
+    margin-left: 4px;
+  }
+  .search-wrap {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+  }
+  .search-wrap .search-box {
+    padding-right: 30px;
+  }
+  .search-clear-btn {
+    position: absolute;
+    right: 6px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+    cursor: pointer;
+    padding: 2px 5px;
+    display: none;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+  .search-clear-btn:hover {
+    color: var(--gold-bright);
+  }
+  .search-clear-btn.visible {
+    display: inline-block;
+  }
+  .badge-missable {
+    background: rgba(168, 56, 56, 0.24);
+    color: #f09c9c;
+    border: 1px solid rgba(196, 76, 76, 0.52);
+  }
+  .group-header {
+    cursor: pointer;
+    user-select: none;
+  }
+  .group-header:hover {
+    color: #fff3d1;
+  }
+  .group-header .group-chevron {
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 0.82rem;
+    transition: transform 0.2s ease;
+    color: var(--gold);
+  }
+  .group-header.collapsed .group-chevron {
+    transform: rotate(-90deg);
+  }
+  .cards-list.collapsed {
+    display: none;
+  }
+  .cross-search-bar {
+    background: rgba(24, 21, 16, 0.92);
+    border: 1px solid var(--gold-dim);
+    border-radius: 2px;
+    padding: 10px 14px;
+    margin-bottom: 14px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--font-serif);
+    font-size: 0.84rem;
+    color: var(--text-muted);
+  }
+  .cross-tab-chip {
+    background: rgba(42, 36, 25, 0.95);
+    border: 1px solid var(--gold);
+    color: var(--gold-bright);
+    padding: 4px 10px;
+    border-radius: 2px;
+    cursor: pointer;
+    font-family: var(--font-serif);
+    font-size: 0.82rem;
+    transition: 0.18s;
+  }
+  .cross-tab-chip:hover {
+    background: rgba(68, 57, 38, 0.98);
+    box-shadow: 0 0 10px rgba(200, 168, 107, 0.25);
+  }
+  .scroll-top-btn {
+    position: fixed;
+    bottom: 24px;
+    left: 24px;
+    width: 38px;
+    height: 38px;
+    background: rgba(20, 18, 13, 0.94);
+    border: 1px solid var(--gold);
+    color: var(--gold-bright);
+    font-family: var(--font-serif);
+    font-size: 1.05rem;
+    cursor: pointer;
+    border-radius: 2px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 200;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.85);
+    transition: 0.2s;
+  }
+  .scroll-top-btn:hover {
+    background: rgba(44, 37, 25, 0.98);
+    box-shadow: 0 0 14px var(--gold-glow);
+  }
+  .scroll-top-btn.visible {
+    display: flex;
+  }
+
+
+  .tab-count { font-size: 0.76rem; opacity: 0.78; margin-left: 4px; }
+  .search-wrap { position: relative; display: inline-flex; align-items: center; }
+  .search-wrap .search-box { padding-right: 28px; }
+  .search-clear {
+    position: absolute; right: 7px; background: transparent; border: none;
+    color: var(--text-muted); cursor: pointer; font-size: 0.85rem; padding: 2px 4px;
+    display: none; line-height: 1;
+  }
+  .search-clear:hover { color: var(--gold-bright); }
+  .search-clear.visible { display: block; }
+
+  .view-controls-row {
+    width: 100%; display: flex; flex-wrap: wrap; align-items: center;
+    justify-content: space-between; gap: 10px; padding-top: 2px;
+  }
+  .view-toggle {
+    display: inline-flex; border: 1px solid var(--border); border-radius: 2px; overflow: hidden;
+  }
+  .view-btn {
+    background: rgba(16, 14, 11, 0.9); border: none; color: var(--text-muted);
+    padding: 5px 12px; font-family: var(--font-serif); font-size: 0.82rem;
+    cursor: pointer; transition: 0.18s;
+  }
+  .view-btn:hover { color: var(--text-main); }
+  .view-btn.active {
+    background: linear-gradient(180deg, rgba(54, 45, 29, 0.95) 0%, rgba(32, 26, 17, 0.98) 100%);
+    color: var(--gold-bright);
+  }
+  .sort-select { min-width: 205px; padding: 5px 10px; font-size: 0.82rem; cursor: pointer; }
+  .btn-collapse-all { padding: 5px 11px; font-size: 0.8rem; }
+
+  .group-header { cursor: pointer; user-select: none; }
+  .group-header:hover { color: #fff3d1; }
+  .group-chevron { display: inline-block; margin-right: 8px; font-size: 0.8rem; color: var(--gold); transition: transform 0.2s; }
+  .group-header.collapsed .group-chevron { transform: rotate(-90deg); }
+  .cards-list.collapsed, .cards-grid.collapsed { display: none; }
+
+  /* Режим сетки (плитки) */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
+    gap: 12px;
+  }
+  .grid-tile {
+    background: linear-gradient(180deg, rgba(25, 22, 16, 0.9) 0%, rgba(16, 14, 10, 0.92) 100%);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 12px 10px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+    position: relative;
+    cursor: pointer;
+    transition: border-color 0.18s, transform 0.15s, background 0.18s;
+    content-visibility: auto;
+    contain-intrinsic-size: 185px;
+  }
+  .grid-tile:hover {
+    border-color: var(--border-bright);
+    background: linear-gradient(180deg, rgba(36, 31, 22, 0.95) 0%, rgba(22, 19, 14, 0.95) 100%);
+  }
+  .grid-tile.completed {
+    border-color: rgba(114, 156, 101, 0.72);
+    background: linear-gradient(180deg, rgba(58, 88, 52, 0.28) 0%, rgba(18, 16, 12, 0.92) 100%);
+  }
+  .grid-tile .tile-diamond {
+    position: absolute; top: 9px; left: 9px; width: 20px; height: 20px; z-index: 2;
+  }
+  .grid-tile .tile-slots-badge {
+    position: absolute; top: 7px; right: 7px; font-family: var(--font-serif);
+    font-size: 0.72rem; color: var(--gold); background: rgba(10, 9, 7, 0.85);
+    border: 1px solid var(--border); padding: 1px 6px; border-radius: 2px;
+  }
+  .grid-tile .tile-img {
+    width: 96px; height: 96px; display: flex; align-items: center; justify-content: center;
+    background: radial-gradient(circle, rgba(42, 37, 27, 0.75) 0%, rgba(10, 9, 7, 0.95) 100%);
+    border: 1px solid rgba(110, 89, 50, 0.35); border-radius: 2px; overflow: hidden;
+  }
+  .grid-tile .tile-img img { width: 100%; height: 100%; object-fit: contain; }
+  .grid-tile .tile-name {
+    font-family: var(--font-serif); font-size: 0.85rem; color: var(--gold-bright);
+    line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical; overflow: hidden;
+  }
+
+  .cross-search-bar {
+    background: rgba(24, 21, 16, 0.92); border: 1px solid var(--gold-dim);
+    border-radius: 2px; padding: 9px 14px; margin-bottom: 14px;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px;
+    font-family: var(--font-serif); font-size: 0.84rem; color: var(--text-muted);
+  }
+  .cross-tab-chip {
+    background: rgba(42, 36, 25, 0.95); border: 1px solid var(--gold);
+    color: var(--gold-bright); padding: 4px 10px; border-radius: 2px;
+    cursor: pointer; font-family: var(--font-serif); font-size: 0.82rem; transition: 0.18s;
+  }
+  .cross-tab-chip:hover { background: rgba(68, 57, 38, 0.98); }
+
+  .scroll-top-btn {
+    position: fixed; bottom: 24px; left: 24px; width: 38px; height: 38px;
+    background: rgba(20, 18, 13, 0.94); border: 1px solid var(--gold);
+    color: var(--gold-bright); font-family: var(--font-serif); font-size: 1.05rem;
+    cursor: pointer; border-radius: 2px; display: none; align-items: center;
+    justify-content: center; z-index: 200; box-shadow: 0 6px 20px rgba(0,0,0,0.85);
+  }
+  .scroll-top-btn.visible { display: flex; }
+
+</style>
+
+
+
+
+<style id="eldenLogoStyle">
+  .elden-ring-logo {
+    width: 38px;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    transition: transform 0.35s ease, filter 0.35s ease;
+  }
+  .brand:hover .elden-ring-logo {
+    transform: scale(1.06);
+    filter: drop-shadow(0 0 12px rgba(246, 223, 170, 0.55));
+  }
+</style>
+
+</head>
+<body>
+
+<canvas id="graceBgCanvas"></canvas>
+<div class="bg-vignette"></div>
+
+<header>
+  <div class="header-top">
+    <div class="brand">
+      <div class="elden-ring-logo" title="Кольцо Элден">
+        <svg viewBox="0 0 100 130" width="38" height="50" fill="none" xmlns="http://w3.org">
+          <defs>
+            <linearGradient id="erGoldGrad" x1="20" y1="4" x2="80" y2="126" gradientUnits="userSpaceOnUse">
+              <stop offset="0%" stop-color="#fff8dc"/>
+              <stop offset="45%" stop-color="#e8c378"/>
+              <stop offset="100%" stop-color="#9e7834"/>
+            </linearGradient>
+            <radialGradient id="erSpark" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+              <stop offset="45%" stop-color="#f6dfaa" stop-opacity="0.55"/>
+              <stop offset="100%" stop-color="#c8a86b" stop-opacity="0"/>
+            </radialGradient>
+            <filter id="erGlow" x="-30%" y="-30%" width="160%" height="160%">
+              <feGaussianBlur stdDeviation="2.1" result="blur"/>
+              <feMerge>
+                <feMergeNode in="blur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+          <g filter="url(#erGlow)" stroke="url(#erGoldGrad)" stroke-linecap="round">
+            <!-- Верхняя дуга (Руна Марики на вершине оси) -->
+            <path d="M 24 8 Q 50 19 76 8" stroke-width="2.2"/>
+            <!-- Вертикальный стержень Золотого Порядка от верхней дуги до низа -->
+            <line x1="50" y1="13" x2="50" y2="124" stroke-width="2.4"/>
+
+            <!-- Фоновая решётка Радагона (тонкие диагональные нити в центре) -->
+            <g stroke-width="0.7" stroke-opacity="0.42">
+              <line x1="34" y1="44" x2="66" y2="76"/>
+              <line x1="66" y1="44" x2="34" y2="76"/>
+              <line x1="31" y1="53" x2="57" y2="79"/>
+              <line x1="69" y1="53" x2="43" y2="79"/>
+              <line x1="43" y1="41" x2="69" y2="67"/>
+              <line x1="57" y1="41" x2="31" y2="67"/>
+            </g>
+
+            <!-- Верхнее кольцо Великой Руны -->
+            <circle cx="50" cy="48" r="19" stroke-width="2.1"/>
+            <!-- Левое и правое нижние кольца -->
+            <circle cx="38" cy="67" r="19" stroke-width="2.1"/>
+            <circle cx="62" cy="67" r="19" stroke-width="2.1"/>
+            <!-- Внутреннее центральное кольцо -->
+            <circle cx="50" cy="61" r="16" stroke-width="1.6" stroke-opacity="0.82"/>
+
+            <!-- Нижняя широкая чаша-дуга (Руна благодати) -->
+            <path d="M 10 95 Q 50 119 90 95" stroke-width="2.4"/>
+
+            <!-- Световые узлы в ключевых точках пересечения -->
+            <circle cx="50" cy="13" r="4.5" fill="url(#erSpark)" stroke="none"/>
+            <circle cx="50" cy="56" r="5" fill="url(#erSpark)" stroke="none"/>
+            <circle cx="50" cy="86" r="4.5" fill="url(#erSpark)" stroke="none"/>
+            <circle cx="50" cy="107" r="5" fill="url(#erSpark)" stroke="none"/>
+          </g>
+        </svg>
+      </div>
+      <h1>Реестр снаряжения Междуземья</h1>
+    </div>
+
+    <div class="header-controls">
+      <button class="btn-util" onclick="openSyncModal()">⇄ Экспорт / Импорт</button>
+
+      <div class="help-wrap" id="helpWrap">
+        <button class="help-btn" onclick="document.getElementById('helpWrap').classList.toggle('active')" title="Справка по работе с трекером">?</button>
+        <div class="help-popover">
+          <h4>Руководство по реестру</h4>
+          <ul>
+            <li><strong>Отметка предметов:</strong> Нажмите на <em>рунический ромб</em>, чтобы отметить весь комплект или предмет, либо на <em>отдельные слоты</em> брони справа.</li>
+            <li><strong>Вид отображения:</strong> Переключайтесь между подробным <em>Списком</em> с гайдами и компактной <em>Сеткой</em> с открытием деталей по клику.</li>
+            <li><strong>Умный поиск:</strong> Ищет без учёта дефисов, по частям сета, регионам и падежам (например, <em>рыцаря изгнанника</em>).</li>
+            <li><strong>Кнопка «Карта ⌖»:</strong> Копирует название благодати в буфер обмена и открывает MapGenie — нажмите <code>Ctrl+V</code> в поиске карты.</li>
+            <li><strong>Автосохранение и перенос:</strong> Прогресс сохраняется в вашем браузере автоматически. Через <em>«Экспорт / Импорт»</em> можно скачать файл <code>.json</code> для резервной копии.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="tabs-bar">
+    <button class="tab-btn active" data-tab="armor" onclick="switchTab('armor', this)">Броня</button>
+    <button class="tab-btn" data-tab="weapons" onclick="switchTab('weapons', this)">Оружие</button>
+    <button class="tab-btn" data-tab="shields" onclick="switchTab('shields', this)">Щиты</button>
+    <button class="tab-btn" data-tab="spells" onclick="switchTab('spells', this)">Заклинания и Молитвы</button>
+    <button class="tab-btn" data-tab="ashes" onclick="switchTab('ashes', this)">Пеплы Войны</button>
+  </div>
+
+</header>
+
+<main class="container">
+  <section id="tab-armor">
+    <div class="toolbar">
+      <div class="filter-pills">
+        <button class="pill active" data-filter="all" onclick="setFilter('all', this)">Все</button>
+        <button class="pill" data-filter="farm" onclick="setFilter('farm', this)">Фарм</button>
+        <button class="pill" data-filter="buy" onclick="setFilter('buy', this)">Покупка</button>
+        <button class="pill" data-filter="loot" onclick="setFilter('loot', this)">Лут</button>
+        <button class="pill" data-filter="reward" onclick="setFilter('reward', this)">Награда</button>
+        <button class="pill" data-filter="missing" onclick="setFilter('missing', this)">Не собрано</button>
+        <button class="pill" data-filter="dlc" onclick="setFilter('dlc', this)">Только DLC</button>
+      </div>
+      <div class="toolbar-right-group"><select class="search-box cat-select" disabled style="opacity:0.55;cursor:default"><option>Все комплекты (191)</option></select><div class="search-wrap"><input type="text" class="search-box" id="searchInput" placeholder="Поиск по сету, части брони, локации или благодати..." oninput="renderArmor()"><button type="button" class="search-clear" onclick="const i=this.previousElementSibling;i.value=\'\';i.dispatchEvent(new Event(\'input\'));i.focus();" title="Очистить">✕</button></div></div>
+
+      <div class="view-controls-row">
+        <div class="view-toggle" id="viewToggle-armor">
+          <button class="view-btn active" data-view="list" onclick="setViewMode('armor', 'list', this)" title="Подробный список с гайдами">☰ Список</button>
+          <button class="view-btn" data-view="grid" onclick="setViewMode('armor', 'grid', this)" title="Компактная сетка с деталями по клику">⊞ Сетка</button>
+        </div>
+        <div class="toolbar-mid-progress">
+        <span id="progressText">Собрано: 0 / 0 сетов (0 из 0 предметов)</span>
+        <div class="er-bar-outer">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <span class="progress-pct" id="progressPct">0%</span>
+        </div>
+        <select class="search-box sort-select" id="sortSelect-armor" onchange="onSortChange('armor', this.value)">
+          <option value="default">Сортировка: По умолчанию</option>
+          <option value="missing_first">Сначала несобранные</option>
+          <option value="alpha">По алфавиту (А–Я)</option>
+        </select>
+        <button class="btn-util btn-collapse-all" id="collapseAll-armor" onclick="toggleCollapseAll('armor')">Свернуть все</button>
+      </div>
+    </div>
+    <div class="cross-search-bar" id="crossSearch-armor" style="display:none"></div>
+    <div id="armorContainer"></div>
+  </section>
+
+    <section id="tab-weapons" style="display:none">
+    <div class="toolbar">
+      <div class="filter-pills" id="pills-weapons">
+        <button class="pill active" data-filter="all" onclick="setItemFilter('weapons', 'all', this)">Все</button>
+        <button class="pill" data-filter="farm" onclick="setItemFilter('weapons', 'farm', this)">Фарм</button>
+        <button class="pill" data-filter="buy" onclick="setItemFilter('weapons', 'buy', this)">Покупка</button>
+        <button class="pill" data-filter="loot" onclick="setItemFilter('weapons', 'loot', this)">Лут</button>
+        <button class="pill" data-filter="reward" onclick="setItemFilter('weapons', 'reward', this)">Награда</button>
+        <button class="pill" data-filter="missing" onclick="setItemFilter('weapons', 'missing', this)">Не собрано</button>
+        <button class="pill" data-filter="dlc" onclick="setItemFilter('weapons', 'dlc', this)">Только DLC</button>
+      </div>
+      <div class="toolbar-right-group"><select class="search-box cat-select" id="catSelect-weapons" style="min-width:190px;cursor:pointer" onchange="renderItemTab('weapons')">
+          <option value="all">Все категории</option>
+        </select><div class="search-wrap"><input type="text" class="search-box" id="searchInput-weapons" placeholder="Поиск по оружию, классу, локации или благодати..." oninput="renderItemTab('weapons')"><button type="button" class="search-clear" onclick="const i=this.previousElementSibling;i.value=\'\';i.dispatchEvent(new Event(\'input\'));i.focus();" title="Очистить">✕</button></div></div>
+      </div>
+
+      <div class="view-controls-row">
+        <div class="view-toggle" id="viewToggle-weapons">
+          <button class="view-btn active" data-view="list" onclick="setViewMode('weapons', 'list', this)" title="Подробный список с гайдами">☰ Список</button>
+          <button class="view-btn" data-view="grid" onclick="setViewMode('weapons', 'grid', this)" title="Компактная сетка с деталями по клику">⊞ Сетка</button>
+        </div>
+        <div class="toolbar-mid-progress">
+        <span id="progressText-weapons">Собрано: 0 / 0 предметов</span>
+        <div class="er-bar-outer">
+          <div class="progress-fill" id="progressFill-weapons"></div>
+        </div>
+        <span class="progress-pct" id="progressPct-weapons">0%</span>
+        </div>
+        <select class="search-box sort-select" id="sortSelect-weapons" onchange="onSortChange('weapons', this.value)">
+          <option value="default">Сортировка: По умолчанию</option>
+          <option value="missing_first">Сначала несобранные</option>
+          <option value="alpha">По алфавиту (А–Я)</option>
+        </select>
+        <button class="btn-util btn-collapse-all" id="collapseAll-weapons" onclick="toggleCollapseAll('weapons')">Свернуть все</button>
+      </div>
+    </div>
+    <div class="cross-search-bar" id="crossSearch-weapons" style="display:none"></div>
+    <div id="container-weapons"></div>
+  </section>
+    <section id="tab-shields" style="display:none">
+    <div class="toolbar">
+      <div class="filter-pills" id="pills-shields">
+        <button class="pill active" data-filter="all" onclick="setItemFilter('shields', 'all', this)">Все</button>
+        <button class="pill" data-filter="farm" onclick="setItemFilter('shields', 'farm', this)">Фарм</button>
+        <button class="pill" data-filter="buy" onclick="setItemFilter('shields', 'buy', this)">Покупка</button>
+        <button class="pill" data-filter="loot" onclick="setItemFilter('shields', 'loot', this)">Лут</button>
+        <button class="pill" data-filter="reward" onclick="setItemFilter('shields', 'reward', this)">Награда</button>
+        <button class="pill" data-filter="missing" onclick="setItemFilter('shields', 'missing', this)">Не собрано</button>
+        <button class="pill" data-filter="dlc" onclick="setItemFilter('shields', 'dlc', this)">Только DLC</button>
+      </div>
+      <div class="toolbar-right-group"><select class="search-box cat-select" id="catSelect-shields" style="min-width:190px;cursor:pointer" onchange="renderItemTab('shields')">
+          <option value="all">Все категории</option>
+        </select><div class="search-wrap"><input type="text" class="search-box" id="searchInput-shields" placeholder="Поиск по щиту, классу, локации или благодати..." oninput="renderItemTab('shields')"><button type="button" class="search-clear" onclick="const i=this.previousElementSibling;i.value=\'\';i.dispatchEvent(new Event(\'input\'));i.focus();" title="Очистить">✕</button></div></div>
+      </div>
+
+      <div class="view-controls-row">
+        <div class="view-toggle" id="viewToggle-shields">
+          <button class="view-btn active" data-view="list" onclick="setViewMode('shields', 'list', this)" title="Подробный список с гайдами">☰ Список</button>
+          <button class="view-btn" data-view="grid" onclick="setViewMode('shields', 'grid', this)" title="Компактная сетка с деталями по клику">⊞ Сетка</button>
+        </div>
+        <div class="toolbar-mid-progress">
+        <span id="progressText-shields">Собрано: 0 / 0 предметов</span>
+        <div class="er-bar-outer">
+          <div class="progress-fill" id="progressFill-shields"></div>
+        </div>
+        <span class="progress-pct" id="progressPct-shields">0%</span>
+        </div>
+        <select class="search-box sort-select" id="sortSelect-shields" onchange="onSortChange('shields', this.value)">
+          <option value="default">Сортировка: По умолчанию</option>
+          <option value="missing_first">Сначала несобранные</option>
+          <option value="alpha">По алфавиту (А–Я)</option>
+        </select>
+        <button class="btn-util btn-collapse-all" id="collapseAll-shields" onclick="toggleCollapseAll('shields')">Свернуть все</button>
+      </div>
+    </div>
+    <div class="cross-search-bar" id="crossSearch-shields" style="display:none"></div>
+    <div id="container-shields"></div>
+  </section>
+
+    <section id="tab-spells" style="display:none">
+    <div class="toolbar">
+      <div class="filter-pills" id="pills-spells">
+        <button class="pill active" data-filter="all" onclick="setItemFilter('spells', 'all', this)">Все</button>
+        <button class="pill" data-filter="farm" onclick="setItemFilter('spells', 'farm', this)">Фарм</button>
+        <button class="pill" data-filter="buy" onclick="setItemFilter('spells', 'buy', this)">Покупка</button>
+        <button class="pill" data-filter="loot" onclick="setItemFilter('spells', 'loot', this)">Лут</button>
+        <button class="pill" data-filter="reward" onclick="setItemFilter('spells', 'reward', this)">Награда</button>
+        <button class="pill" data-filter="missing" onclick="setItemFilter('spells', 'missing', this)">Не собрано</button>
+        <button class="pill" data-filter="dlc" onclick="setItemFilter('spells', 'dlc', this)">Только DLC</button>
+      </div>
+      <div class="toolbar-right-group"><select class="search-box cat-select" id="catSelect-spells" style="min-width:190px;cursor:pointer" onchange="renderItemTab('spells')">
+          <option value="all">Все категории</option>
+        </select><div class="search-wrap"><input type="text" class="search-box" id="searchInput-spells" placeholder="Поиск по заклинанию, школе, локации или благодати..." oninput="renderItemTab('spells')"><button type="button" class="search-clear" onclick="const i=this.previousElementSibling;i.value=\'\';i.dispatchEvent(new Event(\'input\'));i.focus();" title="Очистить">✕</button></div></div>
+      </div>
+
+      <div class="view-controls-row">
+        <div class="view-toggle" id="viewToggle-spells">
+          <button class="view-btn active" data-view="list" onclick="setViewMode('spells', 'list', this)" title="Подробный список с гайдами">☰ Список</button>
+          <button class="view-btn" data-view="grid" onclick="setViewMode('spells', 'grid', this)" title="Компактная сетка с деталями по клику">⊞ Сетка</button>
+        </div>
+        <div class="toolbar-mid-progress">
+        <span id="progressText-spells">Собрано: 0 / 0 предметов</span>
+        <div class="er-bar-outer">
+          <div class="progress-fill" id="progressFill-spells"></div>
+        </div>
+        <span class="progress-pct" id="progressPct-spells">0%</span>
+        </div>
+        <select class="search-box sort-select" id="sortSelect-spells" onchange="onSortChange('spells', this.value)">
+          <option value="default">Сортировка: По умолчанию</option>
+          <option value="missing_first">Сначала несобранные</option>
+          <option value="alpha">По алфавиту (А–Я)</option>
+        </select>
+        <button class="btn-util btn-collapse-all" id="collapseAll-spells" onclick="toggleCollapseAll('spells')">Свернуть все</button>
+      </div>
+    </div>
+    <div class="cross-search-bar" id="crossSearch-spells" style="display:none"></div>
+    <div id="container-spells"></div>
+  </section>
+
+    <section id="tab-ashes" style="display:none">
+    <div class="toolbar">
+      <div class="filter-pills" id="pills-ashes">
+        <button class="pill active" data-filter="all" onclick="setItemFilter('ashes', 'all', this)">Все</button>
+        <button class="pill" data-filter="farm" onclick="setItemFilter('ashes', 'farm', this)">Фарм</button>
+        <button class="pill" data-filter="buy" onclick="setItemFilter('ashes', 'buy', this)">Покупка</button>
+        <button class="pill" data-filter="loot" onclick="setItemFilter('ashes', 'loot', this)">Лут</button>
+        <button class="pill" data-filter="reward" onclick="setItemFilter('ashes', 'reward', this)">Награда</button>
+        <button class="pill" data-filter="missing" onclick="setItemFilter('ashes', 'missing', this)">Не собрано</button>
+        <button class="pill" data-filter="dlc" onclick="setItemFilter('ashes', 'dlc', this)">Только DLC</button>
+      </div>
+      <div class="toolbar-right-group"><select class="search-box cat-select" id="catSelect-ashes" style="min-width:190px;cursor:pointer" onchange="renderItemTab('ashes')">
+          <option value="all">Все категории</option>
+        </select><div class="search-wrap"><input type="text" class="search-box" id="searchInput-ashes" placeholder="Поиск по пеплу войны, локации или благодати..." oninput="renderItemTab('ashes')"><button type="button" class="search-clear" onclick="const i=this.previousElementSibling;i.value=\'\';i.dispatchEvent(new Event(\'input\'));i.focus();" title="Очистить">✕</button></div></div>
+      </div>
+
+      <div class="view-controls-row">
+        <div class="view-toggle" id="viewToggle-ashes">
+          <button class="view-btn active" data-view="list" onclick="setViewMode('ashes', 'list', this)" title="Подробный список с гайдами">☰ Список</button>
+          <button class="view-btn" data-view="grid" onclick="setViewMode('ashes', 'grid', this)" title="Компактная сетка с деталями по клику">⊞ Сетка</button>
+        </div>
+        <div class="toolbar-mid-progress">
+        <span id="progressText-ashes">Собрано: 0 / 0 предметов</span>
+        <div class="er-bar-outer">
+          <div class="progress-fill" id="progressFill-ashes"></div>
+        </div>
+        <span class="progress-pct" id="progressPct-ashes">0%</span>
+        </div>
+        <select class="search-box sort-select" id="sortSelect-ashes" onchange="onSortChange('ashes', this.value)">
+          <option value="default">Сортировка: По умолчанию</option>
+          <option value="missing_first">Сначала несобранные</option>
+          <option value="alpha">По алфавиту (А–Я)</option>
+        </select>
+        <button class="btn-util btn-collapse-all" id="collapseAll-ashes" onclick="toggleCollapseAll('ashes')">Свернуть все</button>
+      </div>
+    </div>
+    <div class="cross-search-bar" id="crossSearch-ashes" style="display:none"></div>
+    <div id="container-ashes"></div>
+  </section>
+</main>
+
+<footer class="author-footer">
+  <div class="author-rune"></div>
+  <div class="footer-line-text">
+    Создано Погасшим <span>Busy Laziness</span>
+    <span class="footer-sep">◆</span>
+    Особая благодарность сообществу <a href="https://fandom.com" target="_blank" rel="noopener">Elden Ring Fandom Wiki</a>
+  </div>
+  <div class="author-rune"></div>
+</footer>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<div class="modal-backdrop" id="syncModal" onclick="if(event.target===this) closeSyncModal()">
+  <div class="modal">
+    <h3>Экспорт / Импорт прогресса</h3>
+    <p style="font-size:0.83rem;color:var(--text-muted);line-height:1.45">Ваш прогресс <b>автоматически сохраняется</b> в памяти браузера. Для переноса на другое устройство скачайте файл <code>.json</code> или скопируйте код ниже.</p>
+    <textarea id="syncCodeBox"></textarea>
+    <div class="modal-actions" style="flex-wrap:wrap;justify-content:space-between">
+      <button class="btn-util" style="border-color:rgba(196,76,76,0.6);color:#f09c9c" onclick="resetAllProgress()">Очистить прогресс</button>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-util" onclick="downloadJsonBackup()">Скачать .json</button>
+        <button class="btn-util" onclick="document.getElementById('jsonBackupInput').click()">Загрузить .json</button>
+        <input type="file" id="jsonBackupInput" accept=".json,application/json" style="display:none" onchange="uploadJsonBackup(event)">
+        <button class="btn-util" onclick="copySyncCode()">Копировать код</button>
+        <button class="btn-util" style="border-color:var(--gold)" onclick="importSyncCode()">Применить</button>
+        <button class="btn-util" onclick="closeSyncModal()">Закрыть</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="detailModal" onclick="if(event.target===this) closeDetailModal()">
+  <div class="modal" style="width:560px">
+    <div id="detailModalBody"></div>
+    <div class="modal-actions" style="margin-top:14px">
+      <button class="btn-util" onclick="closeDetailModal()">Закрыть</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+    const parts = [
+    ['armor_part', 1, 14],
+    ['weapon_part', 1, 20],
+    ['shield_part', 1, 4],
+    ['spell_part', 1, 11],
+    ['ash_part', 1, 6]
+  ];
+
+  let html = '';
+  for (const [prefix, start, end] of parts) {
+    for (let i = start; i <= end; i++) {
+      html += `<script src="${prefix}${i}.js" onerror="void(0)"><\/script>`;
+    }
+  }
+  document.write(html);
+})();
+</script>
+
+
+
+
+
+<script>
+var ACTIVE_TAB = 'armor';
+(function initErdtreeAtmosphere() {
+  const cvs = document.getElementById('graceBgCanvas');
+  if (!cvs) return;
+  const ctx = cvs.getContext('2d');
+  const buf = document.createElement('canvas');
+  const bctx = buf.getContext('2d');
+  let W = 0, H = 0;
+
+  function buildErdtreeScene() {
+    W = cvs.width = buf.width = window.innerWidth;
+    H = cvs.height = buf.height = window.innerHeight;
+    bctx.clearRect(0, 0, W, H);
+
+    // 1. Глубокое ночное небо Междуземья
+    const sky = bctx.createLinearGradient(0, 0, 0, H);
+    sky.addColorStop(0, '#0c0a08');
+    sky.addColorStop(0.5, '#080706');
+    sky.addColorStop(1, '#040302');
+    bctx.fillStyle = sky;
+    bctx.fillRect(0, 0, W, H);
+
+    const tx = W * 0.5;
+    const baseY = H * 0.96;
+    const crownCenterY = H * 0.34;
+    const scale = Math.min(W, H * 1.35);
+
+    // 2. Дальний атмосферный ореол вокруг кроны (Кьяроскуро)
+    const aura = bctx.createRadialGradient(tx, crownCenterY, 15, tx, crownCenterY, scale * 0.56);
+    aura.addColorStop(0, 'rgba(255, 224, 148, 0.22)');
+    aura.addColorStop(0.32, 'rgba(210, 158, 72, 0.09)');
+    aura.addColorStop(0.68, 'rgba(85, 62, 26, 0.025)');
+    aura.addColorStop(1, 'rgba(4, 3, 2, 0)');
+    bctx.fillStyle = aura;
+    bctx.fillRect(0, 0, W, H);
+
+    bctx.save();
+    bctx.lineCap = 'round';
+    bctx.lineJoin = 'round';
+
+    // 3. Многоярусная куполообразная листва Древа Эрд (мягкие светящиеся облака кроны)
+    const foliageClusters = [
+      { dx: 0,     dy: -0.14, rx: 0.24, ry: 0.085, a: 0.13 },
+      { dx: -0.15, dy: -0.09, rx: 0.19, ry: 0.075, a: 0.11 },
+      { dx: 0.15,  dy: -0.09, rx: 0.19, ry: 0.075, a: 0.11 },
+      { dx: -0.25, dy: -0.03, rx: 0.15, ry: 0.065, a: 0.085 },
+      { dx: 0.25,  dy: -0.03, rx: 0.15, ry: 0.065, a: 0.085 },
+      { dx: 0,     dy: -0.06, rx: 0.18, ry: 0.070, a: 0.14 }
+    ];
+    foliageClusters.forEach(c => {
+      const cx = tx + c.dx * scale;
+      const cy = crownCenterY + c.dy * scale;
+      const rx = c.rx * scale;
+      const ry = c.ry * scale;
+      bctx.save();
+      bctx.translate(cx, cy);
+      bctx.scale(1, ry / rx);
+      const fg = bctx.createRadialGradient(0, 0, rx * 0.08, 0, 0, rx);
+      fg.addColorStop(0, `rgba(255, 240, 186, ${c.a})`);
+      fg.addColorStop(0.55, `rgba(218, 170, 86, ${c.a * 0.45})`);
+      fg.addColorStop(1, 'rgba(218, 170, 86, 0)');
+      bctx.fillStyle = fg;
+      bctx.beginPath();
+      bctx.arc(0, 0, rx, 0, Math.PI * 2);
+      bctx.fill();
+      bctx.restore();
+    });
+
+    // 4. Монументальный переплетённый ствол и могучие корни
+    const trunkTopY = crownCenterY - scale * 0.02;
+    const trunkGrad = bctx.createLinearGradient(tx, trunkTopY, tx, baseY);
+    trunkGrad.addColorStop(0, 'rgba(255, 238, 182, 0.24)');
+    trunkGrad.addColorStop(0.45, 'rgba(228, 180, 96, 0.18)');
+    trunkGrad.addColorStop(0.85, 'rgba(176, 132, 62, 0.10)');
+    trunkGrad.addColorStop(1, 'rgba(120, 88, 38, 0)');
+
+    // Основной силуэт ствола с переплетением и корнями
+    bctx.fillStyle = trunkGrad;
+    bctx.beginPath();
+    bctx.moveTo(tx - scale * 0.022, trunkTopY);
+    bctx.bezierCurveTo(tx - scale * 0.016, H * 0.56, tx - scale * 0.026, H * 0.76, tx - scale * 0.095, baseY);
+    bctx.lineTo(tx - scale * 0.042, baseY);
+    bctx.quadraticCurveTo(tx - scale * 0.012, H * 0.84, tx, baseY);
+    bctx.quadraticCurveTo(tx + scale * 0.012, H * 0.84, tx + scale * 0.042, baseY);
+    bctx.lineTo(tx + scale * 0.095, baseY);
+    bctx.bezierCurveTo(tx + scale * 0.026, H * 0.76, tx + scale * 0.016, H * 0.56, tx + scale * 0.022, trunkTopY);
+    bctx.closePath();
+    bctx.fill();
+
+    // Внутренние переплетённые волокна коры (спиральная фактура Древа Эрд)
+    const fibers = [-0.012, -0.004, 0.004, 0.012];
+    fibers.forEach((off, idx) => {
+      bctx.strokeStyle = idx % 2 === 0 ? 'rgba(255, 245, 206, 0.22)' : 'rgba(180, 134, 60, 0.18)';
+      bctx.lineWidth = idx % 2 === 0 ? 1.8 : 1.3;
+      bctx.beginPath();
+      bctx.moveTo(tx + off * scale, trunkTopY + 10);
+      bctx.bezierCurveTo(
+        tx - off * scale * 1.9, H * 0.55,
+        tx + off * scale * 2.4, H * 0.75,
+        tx + off * scale * 4.5, baseY - 12
+      );
+      bctx.stroke();
+    });
+
+    // 5. Раскидистые несущие ветви первого и второго порядка
+    const mainLimbs = [
+      { endX: -0.27, endY: -0.06, cp1X: -0.05, cp1Y: -0.04, cp2X: -0.17, cp2Y: -0.12, w: 4.2 },
+      { endX:  0.27, endY: -0.06, cp1X:  0.05, cp1Y: -0.04, cp2X:  0.17, cp2Y: -0.12, w: 4.2 },
+      { endX: -0.19, endY: -0.13, cp1X: -0.03, cp1Y: -0.06, cp2X: -0.11, cp2Y: -0.15, w: 3.4 },
+      { endX:  0.19, endY: -0.13, cp1X:  0.03, cp1Y: -0.06, cp2X:  0.11, cp2Y: -0.15, w: 3.4 },
+      { endX: -0.08, endY: -0.17, cp1X: -0.01, cp1Y: -0.07, cp2X: -0.04, cp2Y: -0.15, w: 2.8 },
+      { endX:  0.08, endY: -0.17, cp1X:  0.01, cp1Y: -0.07, cp2X:  0.04, cp2Y: -0.15, w: 2.8 },
+      { endX: -0.32, endY:  0.01, cp1X: -0.08, cp1Y: -0.01, cp2X: -0.22, cp2Y: -0.04, w: 2.6 },
+      { endX:  0.32, endY:  0.01, cp1X:  0.08, cp1Y: -0.01, cp2X:  0.22, cp2Y: -0.04, w: 2.6 }
+    ];
+
+    mainLimbs.forEach(l => {
+      const sx = tx + (l.endX > 0 ? 4 : -4);
+      const sy = trunkTopY + scale * 0.03;
+      const ex = tx + l.endX * scale;
+      const ey = crownCenterY + l.endY * scale;
+
+      const lg = bctx.createLinearGradient(sx, sy, ex, ey);
+      lg.addColorStop(0, 'rgba(255, 238, 184, 0.24)');
+      lg.addColorStop(0.65, 'rgba(224, 176, 94, 0.14)');
+      lg.addColorStop(1, 'rgba(224, 176, 94, 0)');
+      bctx.strokeStyle = lg;
+      bctx.lineWidth = l.w;
+
+      bctx.beginPath();
+      bctx.moveTo(sx, sy);
+      bctx.bezierCurveTo(
+        tx + l.cp1X * scale, crownCenterY + l.cp1Y * scale,
+        tx + l.cp2X * scale, crownCenterY + l.cp2Y * scale,
+        ex, ey
+      );
+      bctx.stroke();
+
+      // 6. Плакучие нити золотой листвы, свисающие вниз с каждой ветви
+      for (let k = 0; k < 4; k++) {
+        const tFrac = 0.45 + k * 0.16;
+        const wx = sx + (ex - sx) * tFrac;
+        const wy = sy + (ey - sy) * tFrac - scale * 0.015;
+        const dropLen = scale * (0.06 + (k % 2) * 0.035);
+        const wg = bctx.createLinearGradient(wx, wy, wx, wy + dropLen);
+        wg.addColorStop(0, 'rgba(255, 240, 186, 0.16)');
+        wg.addColorStop(1, 'rgba(255, 240, 186, 0)');
+        bctx.strokeStyle = wg;
+        bctx.lineWidth = 1.1;
+        bctx.beginPath();
+        bctx.moveTo(wx, wy);
+        bctx.quadraticCurveTo(wx + (l.endX > 0 ? 5 : -5), wy + dropLen * 0.5, wx + (l.endX > 0 ? 2 : -2), wy + dropLen);
+        bctx.stroke();
+      }
+    });
+
+    bctx.restore();
+
+    // 7. Лёгкий туман у подножия корней
+    const mist = bctx.createLinearGradient(0, H * 0.78, 0, H);
+    mist.addColorStop(0, 'rgba(8, 7, 5, 0)');
+    mist.addColorStop(1, 'rgba(6, 5, 4, 0.88)');
+    bctx.fillStyle = mist;
+    bctx.fillRect(0, H * 0.78, W, H * 0.22);
+  }
+
+  let resizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(buildErdtreeScene, 140);
+  });
+  buildErdtreeScene();
+
+  const motes = [];
+  for (let i = 0; i < 48; i++) {
+    const near = i < 14;
+    motes.push({
+      x: Math.random() * window.innerWidth,
+      y: Math.random() * window.innerHeight,
+      r: near ? (1.2 + Math.random() * 1.4) : (0.5 + Math.random() * 0.9),
+      vy: near ? (0.22 + Math.random() * 0.24) : (0.08 + Math.random() * 0.12),
+      vx: (Math.random() - 0.5) * 0.14,
+      phase: Math.random() * Math.PI * 2,
+      alpha: near ? (0.35 + Math.random() * 0.35) : (0.14 + Math.random() * 0.22)
+    });
+  }
+
+  let t = 0, lastFrame = 0;
+  function frame(now) {
+    if (!document.hidden && now - lastFrame > 32) {
+      lastFrame = now;
+      t += 0.016;
+      ctx.clearRect(0, 0, W, H);
+      ctx.globalAlpha = 0.90 + Math.sin(t * 1.1) * 0.10;
+      ctx.drawImage(buf, 0, 0);
+      ctx.globalAlpha = 1;
+
+      for (let i = 0; i < motes.length; i++) {
+        const m = motes[i];
+        m.y -= m.vy;
+        m.x += m.vx + Math.sin(t * 0.9 + m.phase) * 0.16;
+        if (m.y < -10) { m.y = H + 10; m.x = Math.random() * W; }
+        if (m.x < -10) m.x = W + 10;
+        if (m.x > W + 10) m.x = -10;
+
+        const flicker = 0.6 + 0.4 * Math.sin(t * 2.1 + m.phase);
+        ctx.fillStyle = `rgba(248, 218, 148, ${(m.alpha * flicker).toFixed(3)})`;
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, m.r, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+
+let ARMOR_SETS = [];
+let ARMOR_MAP = {};
+
+function rebuildArmorList() {
+  const seen = new Set();
+  const list = [];
+  const collect = (arr) => {
+    if (!Array.isArray(arr)) return;
+    for (let i = 0; i < arr.length; i++) {
+      const item = arr[i];
+      if (item && item.id && !seen.has(item.id)) {
+        seen.add(item.id);
+        list.push(item);
+      }
+    }
+  };
+  for (let i = 1; i <= 25; i++) collect(window['ARMOR_PART_' + i]);
+  if (window.ER_ARMOR_PARTS && typeof window.ER_ARMOR_PARTS === 'object') {
+    Object.keys(window.ER_ARMOR_PARTS).sort().forEach(k => collect(window.ER_ARMOR_PARTS[k]));
+  }
+  collect(window.ARMOR_SETS);
+
+  ARMOR_SETS = list;
+  ARMOR_MAP = {};
+  for (let i = 0; i < list.length; i++) ARMOR_MAP[list[i].id] = list[i];
+}
+
+const GROUP_TITLES = {
+  farm: 'Фарм с противников',
+  buy: 'Покупка у торговцев',
+  loot: 'Лут в мире и с боссов',
+  reward: 'Награды за поручения и квесты'
+};
+const GROUP_BADGES = {
+  farm: ['Фарм', 'badge-farm'],
+  buy: ['Покупка', 'badge-buy'],
+  loot: ['Лут', 'badge-loot'],
+  reward: ['Награда', 'badge-reward']
+};
+const SLOT_LABELS = ['Шлем', 'Доспех', 'Перчатки', 'Поножи'];
+
+let state = JSON.parse(localStorage.getItem('er_tracker_v16') || '{}');
+let currentFilter = 'all';
+
+function saveState() {
+  localStorage.setItem('er_tracker_v16', JSON.stringify(state));
+  updateProgress();
+}
+
+function showToast(msg) {
+  const box = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = 'toast';
+  el.textContent = msg;
+  box.appendChild(el);
+  setTimeout(() => el.remove(), 3400);
+}
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+        ['armor', 'weapons', 'shields', 'spells', 'ashes'].forEach(id => {
+
+
+    document.getElementById('tab-' + id).style.display = (id === tab) ? 'block' : 'none';
+  });
+}
+
+function setFilter(f, btn) {
+  currentFilter = f;
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  renderArmor();
+}
+
+function isSetComplete(set) {
+  const arr = state[set.id] || [false, false, false, false];
+  return set.slots.every((s, idx) => s === null || arr[idx]);
+}
+
+function syncCardDOM(setId) {
+  const set = ARMOR_MAP[setId];
+  const card = document.getElementById('card_' + setId);
+  if (!set || !card || currentFilter === 'missing') {
+    renderArmor();
+    return;
+  }
+  const done = isSetComplete(set);
+  const arr = state[setId] || set.slots.map(s => s === null);
+  card.classList.toggle('completed', done);
+  const diamond = card.querySelector('.set-diamond');
+  if (diamond) diamond.classList.toggle('checked', done);
+  const slotRows = card.querySelectorAll('.slot-row');
+  slotRows.forEach((row, idx) => {
+    if (set.slots[idx]) row.classList.toggle('owned', !!arr[idx]);
+  });
+}
+
+function toggleSet(setId) {
+  const set = ARMOR_MAP[setId];
+  if (!set) return;
+  const done = isSetComplete(set);
+  const next = !done;
+  state[setId] = set.slots.map(s => s === null ? true : next);
+  saveState();
+  syncCardDOM(setId);
+  showToast(next ? `«${set.name}» собран` : `Отметка снята: «${set.name}»`);
+}
+
+function toggleSlot(setId, idx) {
+  const set = ARMOR_MAP[setId];
+  if (!set || !set.slots[idx]) return;
+  if (!state[setId]) state[setId] = set.slots.map(s => s === null);
+  state[setId][idx] = !state[setId][idx];
+  const got = state[setId][idx];
+  saveState();
+  syncCardDOM(setId);
+  if (got) {
+    showToast(isSetComplete(set) ? `«${set.name}» собран` : `${SLOT_LABELS[idx]} получен (${set.name})`);
+  } else {
+    showToast(`${SLOT_LABELS[idx]} снят (${set.name})`);
+  }
+}
+
+function openMap(graceEn, isDlc) {
+  if (navigator.clipboard) navigator.clipboard.writeText(graceEn).catch(() => {});
+  showToast(`Скопировано: «${graceEn}» — вставьте (Ctrl+V) в поиск карты`);
+  const url = isDlc
+    ? 'https://mapgenie.io/elden-ring/maps/shadow-of-the-erdtree'
+    : 'https://mapgenie.io/elden-ring/maps/the-lands-between';
+  window.open(url, '_blank');
+}
+
+function updateProgress() {
+  let setsDone = 0, piecesDone = 0, piecesTotal = 0;
+  for (let sIdx = 0; sIdx < ARMOR_SETS.length; sIdx++) {
+    const set = ARMOR_SETS[sIdx];
+    const arr = state[set.id] || [false, false, false, false];
+    let setOk = true;
+    for (let i = 0; i < 4; i++) {
+      if (set.slots[i] !== null) {
+        piecesTotal++;
+        if (arr[i]) piecesDone++;
+        else setOk = false;
+      }
+    }
+    if (setOk) setsDone++;
+  }
+  document.getElementById('progressText').textContent =
+    `Собрано: ${setsDone} / ${ARMOR_SETS.length} сетов (${piecesDone} из ${piecesTotal} предметов)`;
+  const pct = piecesTotal ? Math.round((piecesDone / piecesTotal) * 100) : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressPct').textContent = pct + '%';
+}
+
+function renderArmor() {
+  rebuildArmorList();
+  const q = document.getElementById('searchInput').value.trim().toLowerCase();
+  const container = document.getElementById('armorContainer');
+  container.innerHTML = '';
+
+  if (!ARMOR_SETS.length) {
+    container.innerHTML = `<div class="placeholder-box">
+      <h3>Файлы базы брони не подключены</h3>
+      <p style="margin-bottom:14px">Нажмите кнопку <b>«📂 Подгрузить файлы базы (.js)»</b> в правом верхнем углу и выберите в папке <i>Загрузки</i> файлы <code>armor_part1.js</code> и <code>armor_part2.js</code>.</p>
+      
+    </div>`;
+    updateProgress();
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+  const groups = ['farm', 'buy', 'loot', 'reward'];
+
+  groups.forEach(g => {
+    const isSpecial = ['all', 'missing', 'dlc', 'nophoto'].includes(currentFilter);
+    if (!isSpecial && currentFilter !== g) return;
+    const items = ARMOR_SETS.filter(set => {
+      if (set.type !== g) return false;
+      if (currentFilter === 'missing' && isSetComplete(set)) return false;
+      if (currentFilter === 'dlc' && !set.dlc) return false;
+      if (currentFilter === 'nophoto' && !NO_IMG_IDS.has(set.id)) return false;
+      if (q && !set.name.toLowerCase().includes(q) && !set.graceRu.toLowerCase().includes(q)) return false;
+      return true;
+    });
+    if (!items.length) return;
+
+    const h = document.createElement('div');
+    h.className = 'group-header';
+    h.innerHTML = `<span>${GROUP_TITLES[g]}</span><span style="font-size:0.85rem;color:var(--text-muted)">${items.length}</span>`;
+    frag.appendChild(h);
+
+    const list = document.createElement('div');
+    list.className = 'cards-list';
+
+    items.forEach(set => {
+      const done = isSetComplete(set);
+      const arr = state[set.id] || set.slots.map(s => s === null);
+      const [bText, bCls] = GROUP_BADGES[set.type];
+
+      const card = document.createElement('div');
+      card.id = 'card_' + set.id;
+      card.className = 'armor-card' + (done ? ' completed' : '');
+
+      const slotsHtml = set.slots.map((slotName, idx) => {
+        if (!slotName) {
+          return `<div class="slot-row na"><span class="rune-box"></span><span>${SLOT_LABELS[idx]} (нет в сете)</span></div>`;
+        }
+        const owned = arr[idx] ? 'owned' : '';
+        return `<div class="slot-row ${owned}" onclick="toggleSlot('${set.id}', ${idx})" title="${slotName}">
+          <span class="rune-box"></span>
+          <span>${SLOT_LABELS[idx]}</span>
+        </div>`;
+      }).join('');
+
+      card.innerHTML = `
+        <div class="card-left">
+          <div class="set-diamond ${done ? 'checked' : ''}" onclick="toggleSet('${set.id}')" title="Отметить весь комплект"></div>
+          <div class="portrait-frame">
+            <img src="wiki_images/${set.id}.png" alt="${set.name}"
+                 onload="handleImgLoad('${set.id}')"
+                 onerror="handleImgError(this, '${set.id}')">
+          </div>
+        </div>
+        <div class="card-center">
+          <div class="title-row">
+            <span class="set-title">${set.name}</span>
+            <span class="badge ${bCls}">${bText}</span>
+          </div>
+          <div class="action-links">
+            <a class="btn-link" href="${set.wiki}" target="_blank" rel="noopener">RU Вики ↗</a>
+            <button class="btn-link" onclick="openMap(&quot;${set.graceEn}&quot;, ${set.dlc})">Карта ⌖ (${set.graceRu})</button>
+          </div>
+          <div class="guide-text">${set.guide}</div>
+        </div>
+        <div class="card-right">
+          ${slotsHtml}
+        </div>
+      `;
+      list.appendChild(card);
+    });
+    frag.appendChild(list);
+  });
+
+  container.appendChild(frag);
+  updateTabCounters();
+  updateProgress();
+}
+
+const LOADED_IMG_IDS = new Set();
+const NO_IMG_IDS = new Set();
+
+function updateHeaderStats() {
+  const btn = document.getElementById('btnLoadModules');
+  if (!btn) return;
+  if (ARMOR_SETS.length > 0) {
+    btn.classList.add('sprites-ok');
+    btn.textContent = `📂 База: ${ARMOR_SETS.length} сетов | Фото: ${LOADED_IMG_IDS.size}`;
+  }
+}
+
+function handleImgLoad(setId) {
+  NO_IMG_IDS.delete(setId);
+  LOADED_IMG_IDS.add(setId);
+  const card = document.getElementById('card_' + setId);
+  if (card) card.removeAttribute('data-no-img');
+  updateTabCounters();
+}
+
+function handleImgError(imgEl, setId) {
+  LOADED_IMG_IDS.delete(setId);
+  NO_IMG_IDS.add(setId);
+  const card = document.getElementById('card_' + setId);
+  if (card) card.setAttribute('data-no-img', '1');
+  const frame = imgEl.parentElement;
+  if (frame) {
+    frame.innerHTML = '<div class="no-photo-stub">НЕТ ФОТО</div>';
+  }
+  updateTabCounters();
+}
+
+function handleModuleUpload(ev) {
+  const files = Array.from(ev.target.files || []);
+  if (!files.length) return;
+  try { localStorage.removeItem('er_modules_cache_v2'); } catch (e) {}
+
+  let doneCount = 0;
+  files.forEach(file => {
+    const url = URL.createObjectURL(file);
+    const script = document.createElement('script');
+    script.src = url;
+    script.onload = script.onerror = function() {
+      URL.revokeObjectURL(url);
+      doneCount++;
+      if (doneCount === files.length) {
+        renderArmor();
+        renderAllItemTabs();
+        updateTabCounters();
+        showToast(`Подгружено файлов: ${files.length}`);
+      }
+    };
+    document.head.appendChild(script);
+  });
+}
+
+function openSyncModal() {
+  document.getElementById('syncCodeBox').value = btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+  document.getElementById('syncModal').classList.add('open');
+}
+function closeSyncModal() { document.getElementById('syncModal').classList.remove('open'); }
+function copySyncCode() {
+  const box = document.getElementById('syncCodeBox');
+  box.select();
+  navigator.clipboard.writeText(box.value);
+  showToast('Код прогресса скопирован');
+}
+function importSyncCode() {
+  try {
+    const raw = document.getElementById('syncCodeBox').value.trim();
+    const parsed = JSON.parse(decodeURIComponent(escape(atob(raw))));
+    if (typeof parsed === 'object' && parsed !== null) {
+      state = parsed;
+      saveState();
+      renderArmor();
+      renderAllItemTabs();
+      closeSyncModal();
+      showToast('Прогресс успешно импортирован');
+    }
+  } catch (e) { showToast('Неверный формат кода'); }
+}
+
+window.addEventListener('DOMContentLoaded', () => {
+  try { localStorage.removeItem('er_modules_cache_v2'); } catch (e) {}
+  renderArmor();
+});
+(function initStickyScrollAnim() {
+  const hdr = document.querySelector('header');
+  const bar = document.querySelector('#tab-' + ACTIVE_TAB + ' .toolbar') || document.querySelector('.toolbar');
+  let ticking = false;
+  function updateSticky() {
+    const scrolled = window.scrollY > 24;
+    if (hdr) hdr.classList.toggle('is-scrolled', scrolled);
+    if (bar) {
+      bar.classList.toggle('is-scrolled', scrolled);
+      if (hdr) bar.style.top = hdr.offsetHeight + 'px';
+    }
+    ticking = false;
+  }
+  window.addEventListener('scroll', () => {
+    if (!ticking) { requestAnimationFrame(updateSticky); ticking = true; }
+  }, { passive: true });
+  window.addEventListener('resize', updateSticky, { passive: true });
+  updateSticky();
+})();
+
+
+// === MULTI-TAB ITEM TRACKER ENGINE (WEAPONS, SHIELDS, SPELLS, ASHES) ===
+const ITEM_TABS_CFG = {
+  weapons: {
+    prefix: 'WEAPON_PART_',
+    altPrefix: 'WEAPON_PART',
+    listVar: 'WEAPON_LIST',
+    maxParts: 30,
+    noun: 'оружия',
+    fileHint: 'weapon_part1.js'
+  },
+  shields: {
+    prefix: 'SHIELD_PART_',
+    altPrefix: 'SHIELD_PART',
+    listVar: 'SHIELD_LIST',
+    maxParts: 15,
+    noun: 'щитов',
+    fileHint: 'shield_part1.js'
+  },
+  spells: {
+    prefix: 'SPELL_PART_',
+    altPrefix: 'SPELL_PART',
+    listVar: 'SPELL_LIST',
+    maxParts: 15,
+    noun: 'заклинаний',
+    fileHint: 'spell_part1.js'
+  },
+  ashes: {
+    prefix: 'ASH_PART_',
+    altPrefix: 'ASH_PART',
+    listVar: 'ASH_LIST',
+    maxParts: 10,
+    noun: 'пеплов войны',
+    fileHint: 'ash_part1.js'
+  }
+};
+
+const ITEM_DB = { weapons: [], shields: [], spells: [], ashes: [] };
+const ITEM_MAP = { weapons: {}, shields: {}, spells: {}, ashes: {} };
+const ITEM_FILTERS = { weapons: 'all', shields: 'all', spells: 'all', ashes: 'all' };
+const ITEM_LOADED_IMG = { weapons: new Set(), shields: new Set(), spells: new Set(), ashes: new Set() };
+const ITEM_NO_IMG = { weapons: new Set(), shields: new Set(), spells: new Set(), ashes: new Set() };
+var ACTIVE_TAB = 'armor';
+
+function rebuildItemList(tabKey) {
+  const cfg = ITEM_TABS_CFG[tabKey];
+  if (!cfg) return;
+  const seen = new Set();
+  const list = [];
+  const collect = (arr) => {
+    if (!Array.isArray(arr)) return;
+    for (let i = 0; i < arr.length; i++) {
+      const it = arr[i];
+      if (it && it.id && !seen.has(it.id)) {
+        seen.add(it.id);
+        list.push(it);
+      }
+    }
+  };
+  for (let i = 1; i <= cfg.maxParts; i++) {
+    collect(window[cfg.prefix + i]);
+    collect(window[cfg.altPrefix + i]);
+  }
+  collect(window[cfg.listVar]);
+
+  ITEM_DB[tabKey] = list;
+  ITEM_MAP[tabKey] = {};
+  for (let i = 0; i < list.length; i++) {
+    ITEM_MAP[tabKey][list[i].id] = list[i];
+  }
+}
+
+function setItemFilter(tabKey, f, btn) {
+  ITEM_FILTERS[tabKey] = f;
+  const wrap = document.getElementById('pills-' + tabKey);
+  if (wrap) wrap.querySelectorAll('.pill').forEach(p => p.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  renderItemTab(tabKey);
+}
+
+function isItemOwned(tabKey, itemId) {
+  const key = tabKey + ':' + itemId;
+  return !!state[key];
+}
+
+function toggleSingleItem(tabKey, itemId) {
+  const item = ITEM_MAP[tabKey] && ITEM_MAP[tabKey][itemId];
+  if (!item) return;
+  const key = tabKey + ':' + itemId;
+  const next = !state[key];
+  if (next) state[key] = true;
+  else delete state[key];
+  saveState();
+  updateItemProgress(tabKey);
+
+  if (ITEM_FILTERS[tabKey] === 'missing') {
+    renderItemTab(tabKey);
+  } else {
+    const card = document.getElementById('icard_' + tabKey + '_' + itemId);
+    if (card) {
+      card.classList.toggle('completed', next);
+      const dm = card.querySelector('.set-diamond');
+      if (dm) dm.classList.toggle('checked', next);
+    }
+  }
+  showToast(next ? `«${item.name}» получено` : `Отметка снята: «${item.name}»`);
+}
+
+function updateItemProgress(tabKey) {
+  const list = ITEM_DB[tabKey] || [];
+  let done = 0;
+  for (let i = 0; i < list.length; i++) {
+    if (isItemOwned(tabKey, list[i].id)) done++;
+  }
+  const txt = document.getElementById('progressText-' + tabKey);
+  const fill = document.getElementById('progressFill-' + tabKey);
+  const pctEl = document.getElementById('progressPct-' + tabKey);
+  if (txt) txt.textContent = `Собрано: ${done} / ${list.length} предметов`;
+  const pct = list.length ? Math.round((done / list.length) * 100) : 0;
+  if (fill) fill.style.width = pct + '%';
+  if (pctEl) pctEl.textContent = pct + '%';
+}
+
+function handleItemImgLoad(tabKey, itemId) {
+  ITEM_NO_IMG[tabKey].delete(itemId);
+  ITEM_LOADED_IMG[tabKey].add(itemId);
+  if (ACTIVE_TAB === tabKey) updateTabCounters();
+}
+
+function handleItemImgError(imgEl, tabKey, itemId) {
+  ITEM_LOADED_IMG[tabKey].delete(itemId);
+  ITEM_NO_IMG[tabKey].add(itemId);
+  const frame = imgEl.parentElement;
+  if (frame) frame.innerHTML = '<div class="no-photo-stub">НЕТ ФОТО</div>';
+  if (ACTIVE_TAB === tabKey) updateTabCounters();
+}
+
+function updateTopStatsForTab(tabKey) {
+  const btn = document.getElementById('btnLoadModules');
+  if (!btn) return;
+  if (tabKey === 'armor') {
+    if (ARMOR_SETS.length > 0) {
+      btn.classList.add('sprites-ok');
+      btn.textContent = `📂 База: ${ARMOR_SETS.length} сетов | Фото: ${LOADED_IMG_IDS.size}`;
+    } else {
+      btn.classList.remove('sprites-ok');
+      btn.textContent = '📂 Подгрузить файлы базы (.js)';
+    }
+    return;
+  }
+  const list = ITEM_DB[tabKey] || [];
+  if (list.length > 0) {
+    btn.classList.add('sprites-ok');
+    btn.textContent = `📂 База: ${list.length} шт. | Фото: ${ITEM_LOADED_IMG[tabKey].size}`;
+  } else {
+    btn.classList.remove('sprites-ok');
+    btn.textContent = '📂 Подгрузить файлы базы (.js)';
+  }
+}
+
+function renderItemTab(tabKey) {
+  rebuildItemList(tabKey);
+  const cfg = ITEM_TABS_CFG[tabKey];
+  const list = ITEM_DB[tabKey];
+  const container = document.getElementById('container-' + tabKey);
+  const catSelect = document.getElementById('catSelect-' + tabKey);
+  const searchEl = document.getElementById('searchInput-' + tabKey);
+  if (!container || !cfg) return;
+
+  if (catSelect) {
+    const prevCat = catSelect.value || 'all';
+    const cats = Array.from(new Set(list.map(x => x.category).filter(Boolean)));
+    catSelect.innerHTML = '<option value="all">Все категории (' + cats.length + ')</option>' +
+      cats.map(c => `<option value="${c}">${c}</option>`).join('');
+    if (cats.includes(prevCat)) catSelect.value = prevCat;
+  }
+
+  container.innerHTML = '';
+  if (!list.length) {
+    container.innerHTML = `<div class="placeholder-box">
+      <h3>Файлы базы ${cfg.noun} не подключены</h3>
+      <p style="margin-bottom:14px">Поместите файлы <code>${cfg.fileHint}</code> рядом с трекером и обновите страницу или нажмите кнопку ниже.</p>
+      
+    </div>`;
+    updateItemProgress(tabKey);
+    if (ACTIVE_TAB === tabKey) updateTabCounters();
+    return;
+  }
+
+  const q = (searchEl ? searchEl.value : '').trim().toLowerCase();
+  const selectedCat = catSelect ? catSelect.value : 'all';
+  const f = ITEM_FILTERS[tabKey];
+  const frag = document.createDocumentFragment();
+  const groups = ['farm', 'buy', 'loot', 'reward'];
+
+  groups.forEach(g => {
+    const isSpecial = ['all', 'missing', 'dlc', 'nophoto'].includes(f);
+    if (!isSpecial && f !== g) return;
+
+    const filtered = list.filter(it => {
+      if ((it.type || 'loot') !== g) return false;
+      if (selectedCat !== 'all' && it.category !== selectedCat) return false;
+      if (f === 'missing' && isItemOwned(tabKey, it.id)) return false;
+      if (f === 'dlc' && !it.dlc) return false;
+      if (f === 'nophoto' && !ITEM_NO_IMG[tabKey].has(it.id)) return false;
+      if (q) {
+        const hay = `${it.name} ${it.category || ''} ${it.graceRu || ''}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    });
+    if (!filtered.length) return;
+
+    const h = document.createElement('div');
+    h.className = 'group-header';
+    h.innerHTML = `<span>${GROUP_TITLES[g]}</span><span style="font-size:0.85rem;color:var(--text-muted)">${filtered.length}</span>`;
+    frag.appendChild(h);
+
+    const listWrap = document.createElement('div');
+    listWrap.className = 'cards-list';
+
+    filtered.forEach(it => {
+      const done = isItemOwned(tabKey, it.id);
+      const [bText, bCls] = GROUP_BADGES[it.type] || ['Лут', 'badge-loot'];
+      const card = document.createElement('div');
+      card.id = `icard_${tabKey}_${it.id}`;
+      card.className = 'armor-card' + (done ? ' completed' : '');
+      card.style.gridTemplateColumns = 'auto 1fr';
+
+      const catBadge = it.category
+        ? `<span class="badge" style="background:rgba(200,168,107,0.12);color:var(--gold);border:1px solid var(--border)">${it.category}</span>`
+        : '';
+      const dlcBadge = it.dlc
+        ? `<span class="badge" style="background:rgba(168,120,60,0.2);color:var(--gold-bright);border:1px solid var(--gold-dim)">DLC</span>`
+        : '';
+      const mapBtn = it.graceEn
+        ? `<button class="btn-link" onclick="openMap(&quot;${it.graceEn}&quot;, ${!!it.dlc})">Карта ⌖ (${it.graceRu || it.graceEn})</button>`
+        : (it.graceRu ? `<span class="btn-link" style="cursor:default">Благодать: ${it.graceRu}</span>` : '');
+
+      card.innerHTML = `
+        <div class="card-left">
+          <div class="set-diamond ${done ? 'checked' : ''}" onclick="toggleSingleItem('${tabKey}', '${it.id}')" title="Отметить предмет"></div>
+          <div class="portrait-frame" style="width:92px;height:92px">
+            <img src="wiki_images/${it.id}.png" alt="${it.name}"
+                 onload="handleItemImgLoad('${tabKey}', '${it.id}')"
+                 onerror="handleItemImgError(this, '${tabKey}', '${it.id}')">
+          </div>
+        </div>
+        <div class="card-center">
+          <div class="title-row">
+            <span class="set-title">${it.name}</span>
+            <span class="badge ${bCls}">${bText}</span>
+            ${catBadge}
+            ${dlcBadge}
+          </div>
+          <div class="action-links">
+            <a class="btn-link" href="${it.wiki}" target="_blank" rel="noopener">RU Вики ↗</a>
+            ${mapBtn}
+          </div>
+          <div class="guide-text">${it.guide || ''}</div>
+        </div>
+      `;
+      listWrap.appendChild(card);
+    });
+    frag.appendChild(listWrap);
+  });
+
+  container.appendChild(frag);
+  updateItemProgress(tabKey);
+  if (ACTIVE_TAB === tabKey) updateTabCounters();
+}
+
+function renderAllItemTabs() {
+  ['weapons', 'shields', 'spells', 'ashes'].forEach(k => renderItemTab(k));
+}
+
+const _origSwitchTab = switchTab;
+switchTab = function(tab, btn) {
+  ACTIVE_TAB = tab;
+  _origSwitchTab(tab, btn);
+  if (tab === 'armor') {
+    updateTopStatsForTab('armor');
+  } else {
+    renderItemTab(tab);
+  }
+  const bar = document.querySelector('#tab-' + tab + ' .toolbar');
+  const hdr = document.querySelector('header');
+  if (bar && hdr) {
+    bar.classList.toggle('is-scrolled', window.scrollY > 24);
+    bar.style.top = hdr.offsetHeight + 'px';
+  }
+};
+
+window.addEventListener('DOMContentLoaded', () => {
+  renderAllItemTabs();
+  updateTabCounters();
+});
+
+</script>
+
+
+<script>
+(function initReleasePolish() {
+  const TAB_NAMES = {
+    armor: 'Броня',
+    weapons: 'Оружие',
+    shields: 'Щиты',
+    spells: 'Заклинания и Молитвы',
+    ashes: 'Пеплы Войны'
+  };
+
+  const FILTER_LABELS = {
+    farm: 'Фарм',
+    buy: 'Покупка',
+    loot: 'Лут',
+    reward: 'Награда',
+    missing: 'Не собрано',
+    dlc: 'Только DLC',
+    missable: 'Пропускаемые'
+  };
+
+  function isMissableText(text) {
+    return /пропускаем/i.test(text || '');
+  }
+
+  window.clearSearchInput = function(tabKey) {
+    const inp = tabKey === 'armor'
+      ? document.getElementById('searchInput')
+      : document.getElementById('searchInput-' + tabKey);
+    if (inp) {
+      inp.value = '';
+      inp.focus();
+    }
+    tabKey === 'armor' ? renderArmor() : renderItemTab(tabKey);
+  };
+
+  function syncClearButton(tabKey, val) {
+    const btn = document.getElementById('clearSearch-' + tabKey);
+    if (btn) btn.classList.toggle('visible', !!(val && val.length > 0));
+  }
+
+  function updateGlobalAndTabCounters() {
+    let totalAll = 0;
+    let doneAll = 0;
+
+    let armorPiecesTotal = 0;
+    let armorPiecesDone = 0;
+    for (let i = 0; i < ARMOR_SETS.length; i++) {
+      const set = ARMOR_SETS[i];
+      const arr = state[set.id] || [false, false, false, false];
+      for (let s = 0; s < 4; s++) {
+        if (set.slots[s] !== null) {
+          armorPiecesTotal++;
+          if (arr[s]) armorPiecesDone++;
+        }
+      }
+    }
+    totalAll += armorPiecesTotal;
+    doneAll += armorPiecesDone;
+
+    const armorBtn = document.querySelector('.tab-btn[data-tab="armor"]');
+    if (armorBtn) {
+      armorBtn.innerHTML = 'Броня <span class="tab-count">(' + armorPiecesDone + '/' + armorPiecesTotal + ')</span>';
+    }
+
+    ['weapons', 'shields', 'spells', 'ashes'].forEach(tabKey => {
+      const list = ITEM_DB[tabKey] || [];
+      let done = 0;
+      for (let i = 0; i < list.length; i++) {
+        if (isItemOwned(tabKey, list[i].id)) done++;
+      }
+      totalAll += list.length;
+      doneAll += done;
+      const btn = document.querySelector('.tab-btn[data-tab="' + tabKey + '"]');
+      if (btn) {
+        btn.innerHTML = TAB_NAMES[tabKey] + ' <span class="tab-count">(' + done + '/' + list.length + ')</span>';
+      }
+    });
+
+    const gpText = document.getElementById('globalProgressText');
+    if (gpText) {
+      const pct = totalAll ? Math.round((doneAll / totalAll) * 100) : 0;
+      gpText.textContent = doneAll + ' / ' + totalAll + ' (' + pct + '%)';
+    }
+  }
+
+  const origSaveState = saveState;
+  saveState = function() {
+    origSaveState();
+    updateGlobalAndTabCounters();
+  };
+
+  const origUpdateTopStats = updateTopStatsForTab;
+  updateTopStatsForTab = function(tabKey) {
+    if (typeof origUpdateTopStats === 'function') {
+      try { origUpdateTopStats(tabKey); } catch (e) {}
+    }
+    updateGlobalAndTabCounters();
+  };
+
+  function renderFilterNotice(tabKey, activeFilter, activeCat, isSearching) {
+    const notice = document.getElementById('filterNotice-' + tabKey);
+    if (!notice) return;
+    const hasFilter = activeFilter && activeFilter !== 'all';
+    const hasCat = activeCat && activeCat !== 'all';
+    if (!isSearching || (!hasFilter && !hasCat)) {
+      notice.style.display = 'none';
+      notice.innerHTML = '';
+      return;
+    }
+    const parts = [];
+    if (hasFilter) parts.push('фильтр «' + (FILTER_LABELS[activeFilter] || activeFilter) + '»');
+    if (hasCat) parts.push('категория «' + activeCat + '»');
+    notice.style.display = 'flex';
+    notice.innerHTML = '<span>Показано с учётом активного ограничения (' + parts.join(', ') + '):</span>' +
+      '<button class="cross-tab-chip" onclick="resetTabFiltersKeepSearch('' + tabKey + '')">Показать все совпадения ✕</button>';
+  }
+
+  window.resetTabFiltersKeepSearch = function(tabKey) {
+    if (tabKey === 'armor') {
+      currentFilter = 'all';
+      document.querySelectorAll('#tab-armor .pill').forEach(p => p.classList.toggle('active', p.dataset.filter === 'all'));
+      renderArmor();
+    } else {
+      ITEM_FILTERS[tabKey] = 'all';
+      document.querySelectorAll('#pills-' + tabKey + ' .pill').forEach(p => p.classList.toggle('active', p.dataset.filter === 'all'));
+      const catSel = document.getElementById('catSelect-' + tabKey);
+      if (catSel) catSel.value = 'all';
+      renderItemTab(tabKey);
+    }
+  };
+
+  function renderCrossTabMatches(currentTab, query) {
+    const bar = document.getElementById('crossSearch-' + currentTab);
+    if (!bar) return;
+    const q = (query || '').trim().toLowerCase();
+    if (q.length < 2) {
+      bar.style.display = 'none';
+      bar.innerHTML = '';
+      return;
+    }
+
+    const hits = [];
+    if (currentTab !== 'armor') {
+      const cnt = ARMOR_SETS.filter(s =>
+        (s.name || '').toLowerCase().includes(q) || (s.graceRu || '').toLowerCase().includes(q)
+      ).length;
+      if (cnt > 0) hits.push({ tab: 'armor', label: TAB_NAMES.armor, count: cnt });
+    }
+    ['weapons', 'shields', 'spells', 'ashes'].forEach(t => {
+      if (t === currentTab) return;
+      const cnt = (ITEM_DB[t] || []).filter(it =>
+        (it.name + ' ' + (it.category || '') + ' ' + (it.graceRu || '')).toLowerCase().includes(q)
+      ).length;
+      if (cnt > 0) hits.push({ tab: t, label: TAB_NAMES[t], count: cnt });
+    });
+
+    if (!hits.length) {
+      bar.style.display = 'none';
+      bar.innerHTML = '';
+      return;
+    }
+
+    bar.style.display = 'flex';
+    bar.innerHTML = '<span>Найдено в других разделах:</span>' +
+      hits.map(h => '<button class="cross-tab-chip" onclick="jumpToSearchTab('' + h.tab + '', &quot;' + q.replace(/"/g, '&quot;') + '&quot;)">' + h.label + ': ' + h.count + ' →</button>').join('');
+  }
+
+  window.jumpToSearchTab = function(targetTab, query) {
+    const btn = document.querySelector('.tab-btn[data-tab="' + targetTab + '"]');
+    if (btn) switchTab(targetTab, btn);
+    if (targetTab === 'armor') {
+      currentFilter = 'all';
+      document.querySelectorAll('#tab-armor .pill').forEach(p => p.classList.toggle('active', p.dataset.filter === 'all'));
+      const inp = document.getElementById('searchInput');
+      if (inp) inp.value = query;
+      renderArmor();
+    } else {
+      ITEM_FILTERS[targetTab] = 'all';
+      document.querySelectorAll('#pills-' + targetTab + ' .pill').forEach(p => p.classList.toggle('active', p.dataset.filter === 'all'));
+      const catSel = document.getElementById('catSelect-' + targetTab);
+      if (catSel) catSel.value = 'all';
+      const inp = document.getElementById('searchInput-' + targetTab);
+      if (inp) inp.value = query;
+      renderItemTab(targetTab);
+    }
+  };
+
+  function enhanceCards(container, listSource, isArmor) {
+    if (!container) return;
+    container.querySelectorAll('.group-header').forEach(h => {
+      if (!h.querySelector('.group-chevron')) {
+        h.insertAdjacentHTML('afterbegin', '<span class="group-chevron">▼</span>');
+        h.addEventListener('click', () => {
+          h.classList.toggle('collapsed');
+          const next = h.nextElementSibling;
+          if (next && next.classList.contains('cards-list')) {
+            next.classList.toggle('collapsed');
+          }
+        });
+      }
+    });
+
+    container.querySelectorAll('.armor-card').forEach(card => {
+      const id = isArmor ? card.id.replace('card_', '') : card.id.replace(/^icard_[^_]+_/, '');
+      const obj = isArmor ? ARMOR_MAP[id] : listSource[id];
+      if (!obj) return;
+      if (isMissableText(obj.guide)) {
+        const titleRow = card.querySelector('.title-row');
+        if (titleRow && !titleRow.querySelector('.badge-missable')) {
+          titleRow.insertAdjacentHTML('beforeend', '<span class="badge badge-missable">Пропускаемый</span>');
+        }
+      }
+    });
+  }
+
+  function applyMissableFilterToContainer(container, mapObj, isArmor) {
+    container.querySelectorAll('.armor-card').forEach(card => {
+      const id = isArmor ? card.id.replace('card_', '') : card.id.replace(/^icard_[^_]+_/, '');
+      const obj = mapObj && mapObj[id];
+      if (!obj || !isMissableText(obj.guide)) card.remove();
+    });
+    container.querySelectorAll('.cards-list').forEach(list => {
+      const count = list.children.length;
+      const hdr = list.previousElementSibling;
+      if (!count) {
+        if (hdr) hdr.remove();
+        list.remove();
+      } else if (hdr && hdr.lastElementChild) {
+        hdr.lastElementChild.textContent = count;
+      }
+    });
+  }
+
+  const origRenderArmor = renderArmor;
+  renderArmor = function() {
+    const inp = document.getElementById('searchInput');
+    const rawVal = inp ? inp.value : '';
+    const q = rawVal.trim();
+    syncClearButton('armor', rawVal);
+
+    const runWithFilter = (f) => {
+      const wasMissable = f === 'missable';
+      currentFilter = wasMissable ? 'all' : f;
+      origRenderArmor();
+      currentFilter = f;
+      const container = document.getElementById('armorContainer');
+      if (wasMissable) applyMissableFilterToContainer(container, ARMOR_MAP, true);
+      return container ? container.querySelectorAll('.armor-card').length : 0;
+    };
+
+    const prevFilter = currentFilter;
+    let visibleCount = runWithFilter(prevFilter);
+
+    if (q && prevFilter !== 'all' && visibleCount === 0) {
+      currentFilter = 'all';
+      document.querySelectorAll('#tab-armor .pill').forEach(p => p.classList.toggle('active', p.dataset.filter === 'all'));
+      runWithFilter('all');
+    }
+
+    enhanceCards(document.getElementById('armorContainer'), ARMOR_MAP, true);
+    renderFilterNotice('armor', currentFilter, 'all', !!q);
+    renderCrossTabMatches('armor', q);
+    updateGlobalAndTabCounters();
+  };
+
+  const origRenderItemTab = renderItemTab;
+  renderItemTab = function(tabKey) {
+    const inp = document.getElementById('searchInput-' + tabKey);
+    const catSel = document.getElementById('catSelect-' + tabKey);
+    const rawVal = inp ? inp.value : '';
+    const q = rawVal.trim();
+    syncClearButton(tabKey, rawVal);
+
+    const runWithFilter = (f) => {
+      const wasMissable = f === 'missable';
+      ITEM_FILTERS[tabKey] = wasMissable ? 'all' : f;
+      origRenderItemTab(tabKey);
+      ITEM_FILTERS[tabKey] = f;
+      const container = document.getElementById('container-' + tabKey);
+      if (wasMissable) applyMissableFilterToContainer(container, ITEM_MAP[tabKey], false);
+      return container ? container.querySelectorAll('.armor-card').length : 0;
+    };
+
+    const prevFilter = ITEM_FILTERS[tabKey];
+    const prevCat = catSel ? catSel.value : 'all';
+    let visibleCount = runWithFilter(prevFilter);
+
+    if (q && (prevFilter !== 'all' || prevCat !== 'all') && visibleCount === 0) {
+      ITEM_FILTERS[tabKey] = 'all';
+      document.querySelectorAll('#pills-' + tabKey + ' .pill').forEach(p => p.classList.toggle('active', p.dataset.filter === 'all'));
+      if (catSel) catSel.value = 'all';
+      runWithFilter('all');
+    }
+
+    enhanceCards(document.getElementById('container-' + tabKey), ITEM_MAP[tabKey] || {}, false);
+    renderFilterNotice(tabKey, ITEM_FILTERS[tabKey], catSel ? catSel.value : 'all', !!q);
+    renderCrossTabMatches(tabKey, q);
+    updateGlobalAndTabCounters();
+  };
+
+  const origSwitchTab2 = switchTab;
+  switchTab = function(tab, btn) {
+    origSwitchTab2(tab, btn);
+    try { localStorage.setItem('er_active_tab_v1', tab); } catch (e) {}
+  };
+
+  window.downloadJsonBackup = function() {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'elden-ring-tracker-backup-' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Файл резервной копии .json скачан');
+  };
+
+  window.uploadJsonBackup = function(ev) {
+    const file = ev.target.files && ev.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function() {
+      try {
+        const parsed = JSON.parse(reader.result);
+        if (typeof parsed === 'object' && parsed !== null) {
+          state = parsed;
+          saveState();
+          renderArmor();
+          renderAllItemTabs();
+          closeSyncModal();
+          showToast('Прогресс загружен из .json файла');
+        }
+      } catch (e) {
+        showToast('Ошибка чтения .json файла');
+      }
+    };
+    reader.readAsText(file);
+    ev.target.value = '';
+  };
+
+  window.addEventListener('message', (ev) => {
+    const data = ev.data;
+    if (!data || data.source !== 'ER_WIKI_EXTENSION') return;
+    if (data.type === 'SYNC_ITEM' && data.key) {
+      if (data.owned) state[data.key] = true;
+      else delete state[data.key];
+      saveState();
+      renderArmor();
+      renderAllItemTabs();
+      showToast('Синхронизировано с Fandom Wiki');
+    } else if (data.type === 'SYNC_ARMOR' && data.setId && ARMOR_MAP[data.setId]) {
+      const set = ARMOR_MAP[data.setId];
+      if (!state[data.setId]) state[data.setId] = set.slots.map(s => s === null);
+      if (typeof data.slotIdx === 'number' && set.slots[data.slotIdx]) {
+        state[data.setId][data.slotIdx] = !!data.owned;
+      } else {
+        state[data.setId] = set.slots.map(s => (s === null ? true : !!data.owned));
+      }
+      saveState();
+      renderArmor();
+      showToast('Броня синхронизирована с Fandom Wiki');
+    } else if (data.type === 'REQUEST_STATE') {
+      ev.source && ev.source.postMessage({ source: 'ER_TRACKER_APP', type: 'STATE_DATA', state }, '*');
+    }
+  });
+
+  window.addEventListener('storage', (ev) => {
+    if (ev.key === 'er_tracker_v16' && ev.newValue) {
+      try {
+        state = JSON.parse(ev.newValue);
+        renderArmor();
+        renderAllItemTabs();
+        updateGlobalAndTabCounters();
+      } catch (e) {}
+    }
+  });
+
+  document.addEventListener('keydown', (e) => {
+    const tag = (e.target && e.target.tagName) || '';
+    if (e.key === '/' && tag !== 'INPUT' && tag !== 'TEXTAREA') {
+      e.preventDefault();
+      const inp = ACTIVE_TAB === 'armor'
+        ? document.getElementById('searchInput')
+        : document.getElementById('searchInput-' + ACTIVE_TAB);
+      if (inp) { inp.focus(); inp.select(); }
+    } else if (e.key === 'Escape') {
+      const inp = ACTIVE_TAB === 'armor'
+        ? document.getElementById('searchInput')
+        : document.getElementById('searchInput-' + ACTIVE_TAB);
+      if (inp && inp.value) {
+        inp.value = '';
+        ACTIVE_TAB === 'armor' ? renderArmor() : renderItemTab(ACTIVE_TAB);
+      }
+    }
+  });
+
+  const topBtn = document.getElementById('scrollTopBtn');
+  window.addEventListener('scroll', () => {
+    if (topBtn) topBtn.classList.toggle('visible', window.scrollY > 450);
+  }, { passive: true });
+
+  window.addEventListener('DOMContentLoaded', () => {
+    renderArmor();
+    renderAllItemTabs();
+    updateGlobalAndTabCounters();
+    try {
+      const savedTab = localStorage.getItem('er_active_tab_v1');
+      if (savedTab && savedTab !== 'armor') {
+        const btn = document.querySelector('.tab-btn[data-tab="' + savedTab + '"]');
+        if (btn) switchTab(savedTab, btn);
+      }
+    } catch (e) {}
+  });
+})();
+</script>
+
+
+<button class="scroll-top-btn" id="scrollTopBtn" onclick="window.scrollTo({top:0,behavior:'smooth'})" title="Наверх">↑</button>
+<script>
+(function initReleaseEngine() {
+  const TAB_NAMES = {
+    armor: 'Броня',
+    weapons: 'Оружие',
+    shields: 'Щиты',
+    spells: 'Заклинания и Молитвы',
+    ashes: 'Пеплы Войны'
+  };
+
+  let VIEW_MODES = {};
+  let SORT_MODES = { armor: 'default', weapons: 'default', shields: 'default', spells: 'default', ashes: 'default' };
+  try { VIEW_MODES = JSON.parse(localStorage.getItem('er_view_modes_v1') || '{}'); } catch (e) {}
+
+  function normalizeQuery(str) {
+    return (str || '')
+      .toLowerCase()
+      .replace(/ё/g, 'е')
+      .replace(/[-–—_«»"'().,:;!?/\\]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function stemRu(word) {
+    if (word.length <= 3) return word;
+    return word.replace(/(ами|ями|ому|ему|ого|его|ыми|ими|ах|ях|ов|ев|ей|ом|ем|ам|ям|ой|ий|ый|ая|яя|ое|ее|ые|ие|их|ых|ую|юю|у|ю|а|я|о|е|и|ы|ь)$/, '');
+  }
+
+  function smartMatch(haystackRaw, queryRaw) {
+    const qNorm = normalizeQuery(queryRaw);
+    if (!qNorm) return true;
+    const hNorm = normalizeQuery(haystackRaw);
+    if (hNorm.includes(qNorm)) return true;
+    const qTokens = qNorm.split(' ').filter(Boolean);
+    const hWords = hNorm.split(' ').filter(Boolean).map(stemRu);
+    return qTokens.every(tok => {
+      const st = stemRu(tok);
+      return hNorm.includes(tok) || (st.length >= 3 && hWords.some(w => w.startsWith(st)));
+    });
+  }
+
+  window.updateTabCounters = function() {
+    let armorTotal = 0, armorDone = 0;
+    for (let i = 0; i < ARMOR_SETS.length; i++) {
+      const s = ARMOR_SETS[i];
+      const arr = state[s.id] || [false, false, false, false];
+      for (let k = 0; k < 4; k++) {
+        if (s.slots[k] !== null) {
+          armorTotal++;
+          if (arr[k]) armorDone++;
+        }
+      }
+    }
+    const aBtn = document.querySelector('.tab-btn[data-tab="armor"]');
+    if (aBtn) aBtn.innerHTML = 'Броня <span class="tab-count">(' + armorDone + '/' + armorTotal + ')</span>';
+
+    ['weapons', 'shields', 'spells', 'ashes'].forEach(t => {
+      const list = ITEM_DB[t] || [];
+      let done = 0;
+      for (let i = 0; i < list.length; i++) if (isItemOwned(t, list[i].id)) done++;
+      const btn = document.querySelector('.tab-btn[data-tab="' + t + '"]');
+      if (btn) btn.innerHTML = TAB_NAMES[t] + ' <span class="tab-count">(' + done + '/' + list.length + ')</span>';
+    });
+  };
+
+  const origSaveState = saveState;
+  saveState = function() {
+    origSaveState();
+    updateTabCounters();
+  };
+
+  window.clearSearchBox = function(inputId, tabKey) {
+    const inp = document.getElementById(inputId);
+    if (inp) inp.value = '';
+    const clr = document.getElementById('clear-' + inputId);
+    if (clr) clr.classList.remove('visible');
+    tabKey === 'armor' ? renderArmor() : renderItemTab(tabKey);
+  };
+
+  function syncClearBtn(inputId) {
+    const inp = document.getElementById(inputId);
+    const clr = document.getElementById('clear-' + inputId);
+    if (inp && clr) clr.classList.toggle('visible', inp.value.trim().length > 0);
+  }
+
+  window.setViewMode = function(tabKey, mode, btn) {
+    VIEW_MODES[tabKey] = mode;
+    try { localStorage.setItem('er_view_modes_v1', JSON.stringify(VIEW_MODES)); } catch (e) {}
+    const wrap = document.getElementById('viewToggle-' + tabKey);
+    if (wrap) wrap.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === mode));
+    tabKey === 'armor' ? renderArmor() : renderItemTab(tabKey);
+  };
+
+  window.onSortChange = function(tabKey, val) {
+    SORT_MODES[tabKey] = val;
+    tabKey === 'armor' ? renderArmor() : renderItemTab(tabKey);
+  };
+
+  window.toggleCollapseAll = function(tabKey) {
+    const root = tabKey === 'armor' ? document.getElementById('armorContainer') : document.getElementById('container-' + tabKey);
+    const btn = document.getElementById('collapseAll-' + tabKey);
+    if (!root || !btn) return;
+    const headers = Array.from(root.querySelectorAll('.group-header'));
+    if (!headers.length) return;
+    const anyOpen = headers.some(h => !h.classList.contains('collapsed'));
+    headers.forEach(h => {
+      h.classList.toggle('collapsed', anyOpen);
+      const next = h.nextElementSibling;
+      if (next) next.classList.toggle('collapsed', anyOpen);
+    });
+    btn.textContent = anyOpen ? 'Развернуть все' : 'Свернуть все';
+  };
+
+  function sortArray(arr, mode, isDoneFn) {
+    if (mode === 'alpha') return [...arr].sort((a, b) => a.name.localeCompare(b.name, 'ru'));
+    if (mode === 'missing_first') return [...arr].sort((a, b) => Number(isDoneFn(a)) - Number(isDoneFn(b)));
+    return arr;
+  }
+
+  function renderCrossTabMatches(currentTab, query) {
+    const bar = document.getElementById('crossSearch-' + currentTab);
+    if (!bar) return;
+    const q = (query || '').trim();
+    if (q.length < 2) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+    const hits = [];
+    if (currentTab !== 'armor') {
+      const cnt = ARMOR_SETS.filter(s => smartMatch([s.name, ...(s.slots || []), s.graceRu].join(' '), q)).length;
+      if (cnt > 0) hits.push({ tab: 'armor', label: TAB_NAMES.armor, count: cnt });
+    }
+    ['weapons', 'shields', 'spells', 'ashes'].forEach(t => {
+      if (t === currentTab) return;
+      const cnt = (ITEM_DB[t] || []).filter(it => smartMatch([it.name, it.category, it.graceRu].join(' '), q)).length;
+      if (cnt > 0) hits.push({ tab: t, label: TAB_NAMES[t], count: cnt });
+    });
+    if (!hits.length) { bar.style.display = 'none'; bar.innerHTML = ''; return; }
+    bar.style.display = 'flex';
+    bar.innerHTML = '<span>Найдено в других разделах:</span>' +
+      hits.map(h => '<button class="cross-tab-chip" onclick="jumpToSearchTab(\'' + h.tab + '\', &quot;' + q.replace(/"/g, '&quot;') + '&quot;)">' + h.label + ': ' + h.count + ' →</button>').join('');
+  }
+
+  window.jumpToSearchTab = function(targetTab, query) {
+    const btn = document.querySelector('.tab-btn[data-tab="' + targetTab + '"]');
+    if (btn) switchTab(targetTab, btn);
+    if (targetTab === 'armor') {
+      currentFilter = 'all';
+      document.querySelectorAll('#tab-armor .pill').forEach(p => p.classList.toggle('active', p.dataset.filter === 'all'));
+      const inp = document.getElementById('searchInput');
+      if (inp) inp.value = query;
+      renderArmor();
+    } else {
+      ITEM_FILTERS[targetTab] = 'all';
+      document.querySelectorAll('#pills-' + targetTab + ' .pill').forEach(p => p.classList.toggle('active', p.dataset.filter === 'all'));
+      const catSel = document.getElementById('catSelect-' + targetTab);
+      if (catSel) catSel.value = 'all';
+      const inp = document.getElementById('searchInput-' + targetTab);
+      if (inp) inp.value = query;
+      renderItemTab(targetTab);
+    }
+  };
+  
+  window.openDetailModal = function(tabKey, id) {
+    const body = document.getElementById('detailModalBody');
+    const modal = document.getElementById('detailModal');
+    if (!body || !modal) return;
+    if (tabKey === 'armor') {
+      const set = ARMOR_MAP[id];
+      if (!set) return;
+      const arr = state[set.id] || set.slots.map(s => s === null);
+      const [bText, bCls] = GROUP_BADGES[set.type] || ['Лут', 'badge-loot'];
+      const slotsHtml = set.slots.map((slotName, idx) => {
+        if (!slotName) return '<div class="slot-row na"><span class="rune-box"></span><span>' + SLOT_LABELS[idx] + ' (нет в сете)</span></div>';
+        return '<div class="slot-row ' + (arr[idx] ? 'owned' : '') + '" onclick="toggleSlot(\'' + set.id + '\', ' + idx + '); openDetailModal(\'armor\', \'' + set.id + '\')"><span class="rune-box"></span><span>' + slotName + '</span></div>';
+      }).join('');
+      body.innerHTML = '<div style="display:flex;gap:16px;align-items:flex-start;margin-bottom:12px">' +
+        '<div class="portrait-frame" style="width:96px;height:128px"><img src="wiki_images/' + set.id + '.png" alt="' + set.name + '" onerror="this.parentElement.innerHTML=\'<div class=no-photo-stub>НЕТ ФОТО</div>\'"></div>' +
+        '<div style="flex:1"><div class="title-row" style="margin-bottom:8px"><h3 style="margin:0">' + set.name + '</h3><span class="badge ' + bCls + '">' + bText + '</span></div>' +
+        '<div class="action-links" style="margin-bottom:10px"><a class="btn-link" href="' + set.wiki + '" target="_blank" rel="noopener">RU Вики ↗</a>' +
+        '<button class="btn-link" onclick="openMap(&quot;' + set.graceEn + '&quot;, ' + !!set.dlc + ')">Карта ⌖ (' + set.graceRu + ')</button></div>' +
+        '<div style="display:flex;flex-direction:column;gap:4px">' + slotsHtml + '</div></div></div>' +
+        '<div class="guide-text" style="border-top:1px solid var(--border);padding-top:10px">' + set.guide + '</div>';
+    } else {
+      const it = ITEM_MAP[tabKey] && ITEM_MAP[tabKey][id];
+      if (!it) return;
+      const done = isItemOwned(tabKey, id);
+      const [bText, bCls] = GROUP_BADGES[it.type] || ['Лут', 'badge-loot'];
+      const mapBtn = it.graceEn ? '<button class="btn-link" onclick="openMap(&quot;' + it.graceEn + '&quot;, ' + !!it.dlc + ')">Карта ⌖ (' + (it.graceRu || it.graceEn) + ')</button>' : (it.graceRu ? '<span class="btn-link" style="cursor:default">Благодать: ' + it.graceRu + '</span>' : '');
+      const catBadge = it.category ? '<span class="badge" style="background:rgba(200,168,107,0.12);color:var(--gold);border:1px solid var(--border)">' + it.category + '</span>' : '';
+      body.innerHTML = '<div style="display:flex;gap:16px;align-items:center;margin-bottom:12px">' +
+        '<div class="portrait-frame" style="width:92px;height:92px"><img src="wiki_images/' + it.id + '.png" alt="' + it.name + '" onerror="this.parentElement.innerHTML=\'<div class=no-photo-stub>НЕТ ФОТО</div>\'"></div>' +
+        '<div style="flex:1"><div class="title-row" style="margin-bottom:8px"><h3 style="margin:0">' + it.name + '</h3><span class="badge ' + bCls + '">' + bText + '</span>' + catBadge + '</div>' +
+        '<div class="action-links"><button class="btn-link" onclick="toggleSingleItem(\'' + tabKey + '\', \'' + it.id + '\'); openDetailModal(\'' + tabKey + '\', \'' + it.id + '\')">' + (done ? '✦ Собрано (снять)' : '◇ Отметить как собранное') + '</button>' +
+        '<a class="btn-link" href="' + it.wiki + '" target="_blank" rel="noopener">RU Вики ↗</a>' + mapBtn + '</div></div></div>' +
+        '<div class="guide-text" style="border-top:1px solid var(--border);padding-top:10px">' + (it.guide || '') + '</div>';
+    }
+    modal.classList.add('open');
+  };
+  window.closeDetailModal = function() { const m = document.getElementById('detailModal'); if (m) m.classList.remove('open'); };
+
+  renderArmor = function() {
+    rebuildArmorList(); syncClearBtn('searchInput');
+    const q = document.getElementById('searchInput').value.trim();
+    const container = document.getElementById('armorContainer'); container.innerHTML = '';
+    const matchSet = (set) => !q || smartMatch([set.name, ...(set.slots || []), set.graceRu].join(' '), q);
+    if (q && currentFilter !== 'all') {
+      const ok = ARMOR_SETS.some(set => currentFilter === 'missing' ? (!isSetComplete(set) && matchSet(set)) : (currentFilter === 'dlc' ? (!!set.dlc && matchSet(set)) : (set.type === currentFilter && matchSet(set))));
+      if (!ok) { currentFilter = 'all'; document.querySelectorAll('#tab-armor .pill').forEach(p => p.classList.toggle('active', p.dataset.filter === 'all')); }
+    }
+    const viewMode = VIEW_MODES.armor || 'list', sortMode = SORT_MODES.armor || 'default', frag = document.createDocumentFragment();
+    ['farm', 'buy', 'loot', 'reward'].forEach(g => {
+      if (!['all', 'missing', 'dlc'].includes(currentFilter) && currentFilter !== g) return;
+      let items = ARMOR_SETS.filter(set => set.type === g && (currentFilter !== 'missing' || !isSetComplete(set)) && (currentFilter !== 'dlc' || set.dlc) && matchSet(set));
+      if (!items.length) return;
+      const doneInGroup = items.filter(isSetComplete).length;
+      items = sortArray(items, sortMode, isSetComplete);
+      const h = document.createElement('div'); h.className = 'group-header';
+      h.innerHTML = '<span><span class="group-chevron">▼</span>' + GROUP_TITLES[g] + '</span><span style="font-size:0.85rem;color:var(--gold)">' + doneInGroup + ' / ' + items.length + '</span>';
+      h.addEventListener('click', () => { h.classList.toggle('collapsed'); list.classList.toggle('collapsed'); });
+      frag.appendChild(h);
+      const list = document.createElement('div'); list.className = viewMode === 'grid' ? 'cards-grid' : 'cards-list';
+      items.forEach(set => {
+        const done = isSetComplete(set), arr = state[set.id] || set.slots.map(s => s === null), [bText, bCls] = GROUP_BADGES[set.type];
+        if (viewMode === 'grid') {
+          const valid = set.slots.filter(Boolean).length, owned = set.slots.reduce((a, s, i) => a + (s && arr[i] ? 1 : 0), 0);
+          const tile = document.createElement('div'); tile.id = 'card_' + set.id; tile.className = 'grid-tile' + (done ? ' completed' : '');
+          tile.onclick = (e) => { if (!e.target.closest('.set-diamond')) openDetailModal('armor', set.id); };
+          tile.innerHTML = '<div class="set-diamond tile-diamond ' + (done ? 'checked' : '') + '" onclick="toggleSet(\'' + set.id + '\')"></div><span class="tile-slots-badge">' + owned + '/' + valid + '</span><div class="tile-img"><img src="wiki_images/' + set.id + '.png" loading="lazy" onerror="this.parentElement.innerHTML=\'<div class=no-photo-stub>НЕТ ФОТО</div>\'"></div><div class="tile-name">' + set.name + '</div>';
+          list.appendChild(tile);
+        } else {
+          const card = document.createElement('div'); card.id = 'card_' + set.id; card.className = 'armor-card' + (done ? ' completed' : '');
+          const slotsHtml = set.slots.map((s, idx) => !s ? '<div class="slot-row na"><span class="rune-box"></span><span>' + SLOT_LABELS[idx] + ' (нет в сете)</span></div>' : '<div class="slot-row ' + (arr[idx] ? 'owned' : '') + '" onclick="toggleSlot(\'' + set.id + '\', ' + idx + ')" title="' + s + '"><span class="rune-box"></span><span>' + SLOT_LABELS[idx] + '</span></div>').join('');
+          card.innerHTML = '<div class="card-left"><div class="set-diamond ' + (done ? 'checked' : '') + '" onclick="toggleSet(\'' + set.id + '\')"></div><div class="portrait-frame"><img src="wiki_images/' + set.id + '.png" loading="lazy" onerror="this.parentElement.innerHTML=\'<div class=no-photo-stub>НЕТ ФОТО</div>\'"></div></div><div class="card-center"><div class="title-row"><span class="set-title">' + set.name + '</span><span class="badge ' + bCls + '">' + bText + '</span></div><div class="action-links"><a class="btn-link" href="' + set.wiki + '" target="_blank" rel="noopener">RU Вики ↗</a><button class="btn-link" onclick="openMap(&quot;' + set.graceEn + '&quot;, ' + set.dlc + ')">Карта ⌖ (' + set.graceRu + ')</button></div><div class="guide-text">' + set.guide + '</div></div><div class="card-right">' + slotsHtml + '</div>';
+          list.appendChild(card);
+        }
+      });
+      frag.appendChild(list);
+    });
+    container.appendChild(frag); renderCrossTabMatches('armor', q); updateProgress(); updateTabCounters();
+  };
+  
+  renderItemTab = function(tabKey) {
+    rebuildItemList(tabKey); syncClearBtn('searchInput-' + tabKey);
+    const list = ITEM_DB[tabKey] || [], container = document.getElementById('container-' + tabKey);
+    const catSelect = document.getElementById('catSelect-' + tabKey), searchEl = document.getElementById('searchInput-' + tabKey);
+    if (!container) return;
+    if (catSelect) {
+      const prevCat = catSelect.value || 'all', cats = Array.from(new Set(list.map(x => x.category).filter(Boolean)));
+      catSelect.innerHTML = '<option value="all">Все категории (' + cats.length + ')</option>' + cats.map(c => '<option value="' + c + '">' + c + '</option>').join('');
+      if (cats.includes(prevCat)) catSelect.value = prevCat;
+    }
+    const q = (searchEl ? searchEl.value : '').trim();
+    const matchIt = (it) => !q || smartMatch([it.name, it.category, it.graceRu].join(' '), q);
+    if (q) {
+      const fCur = ITEM_FILTERS[tabKey], catCur = catSelect ? catSelect.value : 'all';
+      const hasWithCur = list.some(it => (catCur === 'all' || it.category === catCur) && (fCur !== 'missing' || !isItemOwned(tabKey, it.id)) && (fCur !== 'dlc' || it.dlc) && (['all', 'missing', 'dlc'].includes(fCur) || (it.type || 'loot') === fCur) && matchIt(it));
+      if (!hasWithCur) {
+        ITEM_FILTERS[tabKey] = 'all';
+        document.querySelectorAll('#pills-' + tabKey + ' .pill').forEach(p => p.classList.toggle('active', p.dataset.filter === 'all'));
+        if (catSelect) catSelect.value = 'all';
+      }
+    }
+    container.innerHTML = '';
+    const selectedCat = catSelect ? catSelect.value : 'all', f = ITEM_FILTERS[tabKey];
+    const viewMode = VIEW_MODES[tabKey] || 'list', sortMode = SORT_MODES[tabKey] || 'default', frag = document.createDocumentFragment();
+    ['farm', 'buy', 'loot', 'reward'].forEach(g => {
+      if (!['all', 'missing', 'dlc'].includes(f) && f !== g) return;
+      let filtered = list.filter(it => (it.type || 'loot') === g && (selectedCat === 'all' || it.category === selectedCat) && (f !== 'missing' || !isItemOwned(tabKey, it.id)) && (f !== 'dlc' || it.dlc) && matchIt(it));
+      if (!filtered.length) return;
+      const doneInGroup = filtered.filter(it => isItemOwned(tabKey, it.id)).length;
+      filtered = sortArray(filtered, sortMode, it => isItemOwned(tabKey, it.id));
+      const h = document.createElement('div'); h.className = 'group-header';
+      h.innerHTML = '<span><span class="group-chevron">▼</span>' + GROUP_TITLES[g] + '</span><span style="font-size:0.85rem;color:var(--gold)">' + doneInGroup + ' / ' + filtered.length + '</span>';
+      h.addEventListener('click', () => { h.classList.toggle('collapsed'); listWrap.classList.toggle('collapsed'); });
+      frag.appendChild(h);
+      const listWrap = document.createElement('div'); listWrap.className = viewMode === 'grid' ? 'cards-grid' : 'cards-list';
+      filtered.forEach(it => {
+        const done = isItemOwned(tabKey, it.id), [bText, bCls] = GROUP_BADGES[it.type] || ['Лут', 'badge-loot'];
+        if (viewMode === 'grid') {
+          const tile = document.createElement('div'); tile.id = 'icard_' + tabKey + '_' + it.id; tile.className = 'grid-tile' + (done ? ' completed' : '');
+          tile.onclick = (e) => { if (!e.target.closest('.set-diamond')) openDetailModal(tabKey, it.id); };
+          tile.innerHTML = '<div class="set-diamond tile-diamond ' + (done ? 'checked' : '') + '" onclick="toggleSingleItem(\'' + tabKey + '\', \'' + it.id + '\')"></div><div class="tile-img"><img src="wiki_images/' + it.id + '.png" loading="lazy" onerror="this.parentElement.innerHTML=\'<div class=no-photo-stub>НЕТ ФОТО</div>\'"></div><div class="tile-name">' + it.name + '</div>';
+          listWrap.appendChild(tile);
+        } else {
+          const card = document.createElement('div'); card.id = 'icard_' + tabKey + '_' + it.id; card.className = 'armor-card' + (done ? ' completed' : ''); card.style.gridTemplateColumns = 'auto 1fr';
+          const catBadge = it.category ? '<span class="badge" style="background:rgba(200,168,107,0.12);color:var(--gold);border:1px solid var(--border)">' + it.category + '</span>' : '';
+          const dlcBadge = it.dlc ? '<span class="badge" style="background:rgba(168,120,60,0.2);color:var(--gold-bright);border:1px solid var(--gold-dim)">DLC</span>' : '';
+          const mapBtn = it.graceEn ? '<button class="btn-link" onclick="openMap(&quot;' + it.graceEn + '&quot;, ' + !!it.dlc + ')">Карта ⌖ (' + (it.graceRu || it.graceEn) + ')</button>' : (it.graceRu ? '<span class="btn-link" style="cursor:default">Благодать: ' + it.graceRu + '</span>' : '');
+          card.innerHTML = '<div class="card-left"><div class="set-diamond ' + (done ? 'checked' : '') + '" onclick="toggleSingleItem(\'' + tabKey + '\', \'' + it.id + '\')"></div><div class="portrait-frame" style="width:92px;height:92px"><img src="wiki_images/' + it.id + '.png" loading="lazy" onerror="this.parentElement.innerHTML=\'<div class=no-photo-stub>НЕТ ФОТО</div>\'"></div></div><div class="card-center"><div class="title-row"><span class="set-title">' + it.name + '</span><span class="badge ' + bCls + '">' + bText + '</span>' + catBadge + dlcBadge + '</div><div class="action-links"><a class="btn-link" href="' + it.wiki + '" target="_blank" rel="noopener">RU Вики ↗</a>' + mapBtn + '</div><div class="guide-text">' + (it.guide || '') + '</div></div>';
+          listWrap.appendChild(card);
+        }
+      });
+      frag.appendChild(listWrap);
+    });
+    container.appendChild(frag); renderCrossTabMatches(tabKey, q); updateItemProgress(tabKey); updateTabCounters();
+  };
+
+  window.downloadJsonBackup = function() {
+    const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob), a = document.createElement('a');
+    a.href = url; a.download = 'elden-ring-tracker-' + new Date().toISOString().slice(0, 10) + '.json';
+    a.click(); URL.revokeObjectURL(url); showToast('Резервная копия .json скачана');
+  };
+  window.uploadJsonBackup = function(ev) {
+    const file = ev.target.files && ev.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function() {
+      try {
+        const parsed = JSON.parse(reader.result);
+        if (typeof parsed === 'object' && parsed !== null && confirm('Заменить текущий прогресс данными из файла?')) {
+          state = parsed; saveState(); renderArmor(); renderAllItemTabs(); closeSyncModal(); showToast('Прогресс загружен из файла');
+        }
+      } catch (e) { showToast('Ошибка чтения .json файла'); }
+    };
+    reader.readAsText(file); ev.target.value = '';
+  };
+  const origImportSyncCode = importSyncCode;
+  importSyncCode = function() { if (confirm('Заменить текущий прогресс импортированным?')) origImportSyncCode(); };
+  window.resetAllProgress = function() {
+    if (!confirm('Полностью очистить все отметки во всех 5 разделах?')) return;
+    state = {}; saveState(); renderArmor(); renderAllItemTabs(); closeSyncModal(); showToast('Весь прогресс очищен');
+  };
+  const origSwitchTab3 = switchTab;
+  switchTab = function(tab, btn) { origSwitchTab3(tab, btn); try { localStorage.setItem('er_active_tab_v1', tab); } catch (e) {} };
+  const topBtn = document.getElementById('scrollTopBtn');
+  window.addEventListener('scroll', () => { if (topBtn) topBtn.classList.toggle('visible', window.scrollY > 450); }, { passive: true });
+  window.addEventListener('DOMContentLoaded', () => {
+    ['armor', 'weapons', 'shields', 'spells', 'ashes'].forEach(t => {
+      const m = VIEW_MODES[t] || 'list', wrap = document.getElementById('viewToggle-' + t);
+      if (wrap) wrap.querySelectorAll('.view-btn').forEach(b => b.classList.toggle('active', b.dataset.view === m));
+    });
+    renderArmor(); renderAllItemTabs(); updateTabCounters();
+    try {
+      const savedTab = localStorage.getItem('er_active_tab_v1');
+      if (savedTab && savedTab !== 'armor') { const btn = document.querySelector('.tab-btn[data-tab="' + savedTab + '"]'); if (btn) switchTab(savedTab, btn); }
+    } catch (e) {}
+  });
+
+
+})();
+</script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<style id="masterLayoutFix">
+  html, body {
+    overflow-x: visible !important;
+  }
+
+  header {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 200 !important;
+    background: rgba(12, 10, 8, 0.88) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+  }
+
+  .toolbar {
+    position: sticky !important;
+    top: 96px;
+    z-index: 190 !important;
+    width: 100% !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    padding: 12px 16px !important;
+    margin-bottom: 22px !important;
+    background: rgba(15, 13, 10, 0.78) !important;
+    backdrop-filter: blur(8px) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    border: 1px solid rgba(200, 168, 107, 0.45) !important;
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.72) !important;
+  }
+
+  .toolbar-top-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 10px !important;
+    width: 100% !important;
+  }
+  .toolbar-right-group {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin-left: auto !important;
+  }
+  .cat-select {
+    width: 195px !important; min-width: 195px !important; height: 32px !important;
+    padding: 4px 10px !important; font-size: 0.83rem !important;
+    background: rgba(10, 9, 7, 0.75) !important;
+  }
+  .search-wrap .search-box {
+    width: 255px !important; min-width: 255px !important; height: 32px !important;
+    padding: 4px 28px 4px 12px !important; font-size: 0.83rem !important;
+    background: rgba(10, 9, 7, 0.75) !important;
+  }
+  .pill { background: rgba(14, 12, 9, 0.65) !important; }
+
+  .view-controls-row {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 14px !important;
+    padding-top: 8px !important;
+    border-top: 1px solid rgba(110, 89, 50, 0.28) !important;
+    width: 100% !important;
+  }
+  .toolbar-mid-progress {
+    flex: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 12px !important;
+    min-width: 210px !important;
+    font-family: var(--font-serif);
+    font-size: 0.83rem;
+    color: var(--gold);
+  }
+  .toolbar-mid-progress .er-bar-outer { flex: 1 !important; height: 10px !important; background: rgba(8, 7, 5, 0.7) !important; }
+  .sort-select {
+    width: 205px !important; min-width: 205px !important; height: 30px !important;
+    padding: 3px 10px !important; font-size: 0.82rem !important;
+    background: rgba(10, 9, 7, 0.75) !important;
+  }
+  .btn-collapse-all {
+    height: 30px !important; padding: 3px 12px !important; font-size: 0.82rem !important;
+    background: rgba(18, 15, 11, 0.75) !important;
+  }
+
+  /* Убираем любую подложку за карточками и размытие — карточки лежат прямо поверх лучей благодати */
+  main.container, section, .cards-list, .cards-grid {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .armor-card, .grid-tile {
+    background: rgba(18, 15, 11, 0.48) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    border: 1px solid rgba(110, 89, 50, 0.48) !important;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45) !important;
+    position: relative;
+  }
+  .armor-card:hover, .grid-tile:hover {
+    background: rgba(28, 24, 17, 0.68) !important;
+    border-color: rgba(200, 168, 107, 0.78) !important;
+  }
+  .armor-card.completed, .grid-tile.completed {
+    border-color: rgba(114, 156, 101, 0.75) !important;
+    background: linear-gradient(135deg, rgba(56, 88, 50, 0.34) 0%, rgba(18, 15, 11, 0.54) 75%) !important;
+  }
+
+  /* Убираем лишнюю тёмную рамку-коробку вокруг иконки в карточке */
+  .portrait-frame, .tile-img {
+    background: rgba(10, 9, 7, 0.35) !important;
+    box-shadow: none !important;
+  }
+
+  .grid-tile::before, .grid-tile::after {
+    content: '';
+    position: absolute;
+    width: 6px;
+    height: 6px;
+    border-color: var(--gold-dim);
+    border-style: solid;
+    pointer-events: none;
+  }
+  .grid-tile::before { top: 3px; left: 3px; border-width: 1px 0 0 1px; }
+  .grid-tile::after { bottom: 3px; right: 3px; border-width: 0 1px 1px 0; }
+  .grid-tile:hover::before, .grid-tile:hover::after { border-color: var(--gold); }
+
+  .cards-grid {
+    display: grid !important;
+    grid-template-columns: repeat(auto-fill, minmax(176px, 1fr)) !important;
+    gap: 14px !important;
+    width: 100% !important;
+  }
+</style>
+<script>
+(function initCleanStickyAndView() {
+  // 1. Собираем верхнюю строку в каждом тулбаре
+  document.querySelectorAll('.toolbar').forEach(tb => {
+    const pills = tb.querySelector('.filter-pills');
+    const right = tb.querySelector('.toolbar-right-group');
+    if (pills && right && !tb.querySelector('.toolbar-top-row')) {
+      const row = document.createElement('div');
+      row.className = 'toolbar-top-row';
+      tb.insertBefore(row, pills);
+      row.appendChild(pills);
+      row.appendChild(right);
+    }
+  });
+
+  // 2. Жёсткая синхронизация позиции тулбара ровно по нижней кромке шапки
+  const hdr = document.querySelector('header');
+  function pinToolbarBelowHeader() {
+    if (!hdr) return;
+    const bottom = Math.round(hdr.getBoundingClientRect().bottom);
+    const safeTop = Math.max(bottom, hdr.offsetHeight);
+    document.querySelectorAll('.toolbar').forEach(tb => {
+      tb.style.setProperty('top', safeTop + 'px', 'important');
+    });
+  }
+  if (hdr && window.ResizeObserver) {
+    new ResizeObserver(pinToolbarBelowHeader).observe(hdr);
+  }
+  window.addEventListener('scroll', pinToolbarBelowHeader, { passive: true });
+  window.addEventListener('resize', pinToolbarBelowHeader, { passive: true });
+  window.addEventListener('DOMContentLoaded', pinToolbarBelowHeader);
+  setTimeout(pinToolbarBelowHeader, 80);
+
+  // 3. Глобальный режим Список / Сетка
+  function syncViewButtons(mode) {
+    document.querySelectorAll('.view-toggle .view-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.view === mode);
+    });
+  }
+  const baseSetViewMode = window.setViewMode;
+  window.setViewMode = function(tabKey, mode) {
+    try {
+      localStorage.setItem('er_global_view_v1', mode);
+      localStorage.setItem('er_view_modes_v1', JSON.stringify({
+        armor: mode, weapons: mode, shields: mode, spells: mode, ashes: mode
+      }));
+    } catch (e) {}
+    if (typeof baseSetViewMode === 'function') {
+      ['armor', 'weapons', 'shields', 'spells', 'ashes'].forEach(t => baseSetViewMode(t, mode, null));
+    }
+    syncViewButtons(mode);
+  };
+  window.addEventListener('DOMContentLoaded', () => {
+    let saved = 'list';
+    try { saved = localStorage.getItem('er_global_view_v1') || 'list'; } catch (e) {}
+    if (typeof window.setViewMode === 'function') window.setViewMode('armor', saved);
+    syncViewButtons(saved);
+  });
+})();
+</script>
+
+
+<style id="toolbarAndFooterFix">
+  .author-footer {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 14px !important;
+    flex-wrap: wrap !important;
+    text-align: center !important;
+  }
+  .footer-line-text {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    line-height: 1.4 !important;
+  }
+  .footer-sep {
+    color: var(--gold-dim) !important;
+    font-size: 0.65rem !important;
+  }
+  .footer-line-text a {
+    color: var(--gold) !important;
+    text-decoration: none !important;
+    border-bottom: 1px dotted var(--gold-dim) !important;
+    transition: color 0.18s, border-color 0.18s;
+  }
+  .footer-line-text a:hover {
+    color: var(--gold-bright) !important;
+    border-bottom-color: var(--gold-bright) !important;
+  }
+  .toolbar {
+    overflow: visible !important;
+  }
+  .view-controls-row {
+    width: 100% !important;
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 14px !important;
+  }
+</style>
+<script>
+(function ensureControlsInsideToolbar() {
+  // Если .view-controls-row оказалась сразу после .toolbar из-за лишнего </div>, затягиваем её внутрь sticky .toolbar
+  document.querySelectorAll('.toolbar').forEach(tb => {
+    const next = tb.nextElementSibling;
+    if (next && next.classList.contains('view-controls-row')) {
+      tb.appendChild(next);
+    }
+  });
+})();
+</script>
+
+
+<script id="perfOptimizer">
+(function optimizePerformance() {
+  const ALL_TABS = ['armor', 'weapons', 'shields', 'spells', 'ashes'];
+  const dirtyTabs = { armor: false, weapons: true, shields: true, spells: true, ashes: true };
+  const builtCats = {};
+
+  // 1. Кэшируем сборку баз (не пересобираем массивы на каждый символ в поиске)
+  let armorBuilt = false;
+  const origRebuildArmor = rebuildArmorList;
+  rebuildArmorList = function() {
+    if (armorBuilt && ARMOR_SETS.length > 0) return;
+    origRebuildArmor();
+    if (ARMOR_SETS.length > 0) armorBuilt = true;
+  };
+
+  const itemBuilt = {};
+  const origRebuildItem = rebuildItemList;
+  rebuildItemList = function(tabKey) {
+    if (itemBuilt[tabKey] && (ITEM_DB[tabKey] || []).length > 0) return;
+    origRebuildItem(tabKey);
+    if ((ITEM_DB[tabKey] || []).length > 0) itemBuilt[tabKey] = true;
+  };
+
+  // 2. Ленивая отрисовка: перерисовываем только активную вкладку, остальные — при переходе на них
+  const prevSetViewMode = window.setViewMode;
+  window.setViewMode = function(tabKey, mode) {
+    try {
+      localStorage.setItem('er_global_view_v1', mode);
+      localStorage.setItem('er_view_modes_v1', JSON.stringify({
+        armor: mode, weapons: mode, shields: mode, spells: mode, ashes: mode
+      }));
+    } catch (e) {}
+    document.querySelectorAll('.view-toggle .view-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.view === mode);
+    });
+    ALL_TABS.forEach(t => {
+      if (t !== ACTIVE_TAB) dirtyTabs[t] = true;
+    });
+    if (typeof prevSetViewMode === 'function') {
+      // Обновляем внутренний словарь режимов и рендерим только текущую вкладку
+      prevSetViewMode(ACTIVE_TAB, mode);
+    }
+  };
+
+  const prevSwitchTab = switchTab;
+  switchTab = function(tab, btn) {
+    prevSwitchTab(tab, btn);
+    if (dirtyTabs[tab]) {
+      dirtyTabs[tab] = false;
+      tab === 'armor' ? renderArmor() : renderItemTab(tab);
+    }
+  };
+
+  // Переопределяем renderAllItemTabs так, чтобы скрытые вкладки не рендерились впустую
+  renderAllItemTabs = function() {
+    ALL_TABS.forEach(t => {
+      rebuildItemList(t);
+      if (t === ACTIVE_TAB) {
+        dirtyTabs[t] = false;
+        t === 'armor' ? renderArmor() : renderItemTab(t);
+      } else {
+        dirtyTabs[t] = true;
+      }
+    });
+    updateTabCounters();
+  };
+
+  // 3. Debounce (110 мс) для живого поиска, чтобы ввод текста был мгновенным
+  function attachDebounce(inputId, fn) {
+    const el = document.getElementById(inputId);
+    if (!el) return;
+    let timer = null;
+    el.oninput = function() {
+      clearTimeout(timer);
+      timer = setTimeout(fn, 110);
+    };
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    attachDebounce('searchInput', () => renderArmor());
+    ['weapons', 'shields', 'spells', 'ashes'].forEach(t => {
+      attachDebounce('searchInput-' + t, () => renderItemTab(t));
+    });
+  });
+})();
+</script>
+
+
+<style id="eldenArtDirection">
+  :root {
+    --font-serif: 'Cinzel', 'Palatino Linotype', 'Book Antiqua', Georgia, serif !important;
+    --font-sans: 'Cormorant Garamond', 'Georgia', serif !important;
+    --er-gold: #cbb07a;
+    --er-gold-bright: #f6dfaa;
+    --er-gold-dim: rgba(142, 114, 64, 0.48);
+    --er-ink: #ebe4d5;
+    --er-ink-muted: #a39782;
+  }
+
+  body {
+    font-family: var(--font-sans) !important;
+    font-size: 16.5px !important;
+    color: var(--er-ink) !important;
+    letter-spacing: 0.015em;
+  }
+
+  /* Тонкая виньетка и мягкий верхний световой ореол */
+  .bg-vignette {
+    background:
+      radial-gradient(ellipse at 50% 0%, rgba(212, 168, 86, 0.08) 0%, transparent 55%),
+      radial-gradient(circle at 50% 45%, transparent 28%, rgba(5, 4, 3, 0.78) 88%, rgba(3, 2, 2, 0.95) 100%) !important;
+  }
+
+  /* Шапка как верхняя панель меню Elden Ring */
+  header {
+    background: linear-gradient(180deg, rgba(14, 12, 9, 0.90) 0%, rgba(10, 9, 7, 0.80) 100%) !important;
+    border-bottom: 1px solid rgba(156, 126, 72, 0.42) !important;
+  }
+  header::after {
+    height: 1px !important;
+    background: linear-gradient(90deg, transparent 5%, rgba(246, 223, 170, 0.65) 50%, transparent 95%) !important;
+    opacity: 0.85 !important;
+  }
+  h1 {
+    font-family: var(--font-serif) !important;
+    font-weight: 600 !important;
+    font-size: 1.34rem !important;
+    letter-spacing: 0.19em !important;
+    background: linear-gradient(180deg, #fff4d4 0%, #dfc084 65%, #9e7e43 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.95));
+  }
+
+  /* Вкладки разделов с клиновидным золотым подчёркиванием */
+  .tab-btn {
+    font-family: var(--font-serif) !important;
+    font-weight: 600 !important;
+    font-size: 0.88rem !important;
+    letter-spacing: 0.11em !important;
+    position: relative;
+    padding: 11px 18px !important;
+  }
+  .tab-btn.active {
+    background: radial-gradient(ellipse at 50% 100%, rgba(216, 176, 98, 0.18) 0%, transparent 72%) !important;
+    border-bottom: 2px solid var(--er-gold-bright) !important;
+  }
+  .tab-btn.active::after {
+    content: '◆';
+    position: absolute;
+    bottom: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 8px;
+    color: var(--er-gold-bright);
+    text-shadow: 0 0 8px rgba(246, 223, 170, 0.9);
+  }
+
+  /* Тулбар фильтров с гравированной верхней кромкой */
+  .toolbar {
+    background: linear-gradient(180deg, rgba(20, 17, 12, 0.78) 0%, rgba(12, 10, 8, 0.74) 100%) !important;
+    border: 1px solid rgba(156, 126, 72, 0.42) !important;
+    box-shadow: inset 0 1px 0 rgba(246, 223, 170, 0.14), 0 10px 30px rgba(0, 0, 0, 0.72) !important;
+  }
+
+  /* Фирменный градиентный блик меню FromSoftware при наведении на кнопки и пилюли */
+  .pill, .btn-util, .btn-link, .view-btn, .cross-tab-chip {
+    font-family: var(--font-serif) !important;
+    letter-spacing: 0.06em !important;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.22s ease !important;
+  }
+  .pill:hover, .btn-util:hover, .btn-link:hover, .view-btn:hover {
+    background: radial-gradient(ellipse at center, rgba(212, 172, 96, 0.24) 0%, rgba(24, 20, 14, 0.85) 85%) !important;
+    border-color: rgba(242, 213, 147, 0.72) !important;
+    color: var(--er-gold-bright) !important;
+    text-shadow: 0 0 8px rgba(242, 213, 147, 0.35);
+  }
+  .pill.active, .view-btn.active {
+    background: radial-gradient(ellipse at center, rgba(218, 178, 100, 0.32) 0%, rgba(34, 28, 18, 0.92) 85%) !important;
+    border-color: var(--er-gold-bright) !important;
+    box-shadow: inset 0 0 10px rgba(242, 213, 147, 0.22), 0 0 12px rgba(200, 168, 107, 0.18) !important;
+  }
+
+  /* Заголовки групп (Фарм, Покупка, Лут, Награда) в стиле заголовков локаций Elden Ring */
+  .group-header {
+    font-family: var(--font-serif) !important;
+    font-weight: 600 !important;
+    font-size: 1.02rem !important;
+    letter-spacing: 0.16em !important;
+    padding: 8px 12px !important;
+    margin: 30px 0 14px !important;
+    background: linear-gradient(90deg, rgba(200, 168, 107, 0.11) 0%, rgba(200, 168, 107, 0.03) 65%, transparent 100%);
+    border-left: 2px solid var(--er-gold);
+    border-bottom: 1px solid rgba(156, 126, 72, 0.35) !important;
+  }
+  .group-header::after {
+    width: 100% !important;
+    background: linear-gradient(90deg, var(--er-gold-bright) 0%, rgba(200, 168, 107, 0.2) 55%, transparent 100%) !important;
+  }
+
+  /* Карточки снаряжения: прозрачная состаренная бронза с гравировкой по верхней кромке */
+  .armor-card, .grid-tile {
+    background: linear-gradient(165deg, rgba(24, 20, 15, 0.50) 0%, rgba(13, 11, 8, 0.46) 100%) !important;
+    border: 1px solid rgba(142, 114, 64, 0.42) !important;
+    box-shadow: inset 0 1px 0 rgba(246, 223, 170, 0.11), 0 6px 18px rgba(0, 0, 0, 0.45) !important;
+    transition: transform 0.2s ease, border-color 0.22s ease, background 0.22s ease, box-shadow 0.22s ease !important;
+  }
+  .armor-card:hover, .grid-tile:hover {
+    background: linear-gradient(165deg, rgba(38, 32, 22, 0.72) 0%, rgba(20, 17, 12, 0.68) 100%) !important;
+    border-color: rgba(242, 213, 147, 0.75) !important;
+    box-shadow: inset 0 1px 0 rgba(246, 223, 170, 0.24), 0 8px 24px rgba(0, 0, 0, 0.65), 0 0 16px rgba(200, 168, 107, 0.10) !important;
+  }
+  .grid-tile:hover {
+    transform: translateY(-2px);
+  }
+
+  /* Собранные предметы — благородный оттенок Древнего Изумруда / Благодати */
+  .armor-card.completed, .grid-tile.completed {
+    border-color: rgba(132, 176, 116, 0.68) !important;
+    background: linear-gradient(135deg, rgba(62, 98, 56, 0.30) 0%, rgba(16, 14, 10, 0.52) 78%) !important;
+    box-shadow: inset 0 1px 0 rgba(180, 228, 165, 0.16), 0 4px 16px rgba(0, 0, 0, 0.45) !important;
+  }
+
+  /* Название предмета и гайд с комфортной книжной типографикой */
+  .set-title {
+    font-family: var(--font-serif) !important;
+    font-weight: 600 !important;
+    font-size: 1.08rem !important;
+    letter-spacing: 0.04em !important;
+    color: var(--er-gold-bright) !important;
+  }
+  .grid-tile .tile-name {
+    font-family: var(--font-serif) !important;
+    font-weight: 600 !important;
+    font-size: 0.83rem !important;
+    letter-spacing: 0.03em !important;
+    color: var(--er-gold-bright) !important;
+  }
+  .guide-text {
+    font-family: var(--font-sans) !important;
+    font-size: 1.02rem !important;
+    line-height: 1.56 !important;
+    color: #e5dec9 !important;
+  }
+  .guide-text b {
+    color: #fff2d1 !important;
+    font-weight: 700 !important;
+  }
+
+  /* Мягкое золотое свечение вокруг иконки снаряжения при наведении */
+  .portrait-frame img, .tile-img img {
+    transition: transform 0.25s ease, filter 0.25s ease;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.85));
+  }
+  .armor-card:hover .portrait-frame img, .grid-tile:hover .tile-img img {
+    transform: scale(1.04);
+    filter: drop-shadow(0 4px 12px rgba(212, 172, 96, 0.28));
+  }
+
+  /* Вспышка рунического ромба при отметке */
+  @keyframes runeBurst {
+    0% { box-shadow: 0 0 0 0 rgba(246, 223, 170, 0.85); }
+    100% { box-shadow: 0 0 0 12px rgba(246, 223, 170, 0); }
+  }
+  .set-diamond.checked {
+    animation: runeBurst 0.45s ease-out;
+  }
+
+  /* Тонкий стилизованный скроллбар в цветах Междуземья */
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: #090806; }
+  ::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #5e4b28, #8c703c);
+    border: 1px solid #1a150e;
+    border-radius: 2px;
+  }
+  ::-webkit-scrollbar-thumb:hover { background: #c8a86b; }
+</style>
+
+
+<style id="eldenMasterpieceTheme">
+  :root {
+    --font-serif: 'Cinzel', 'Palatino Linotype', 'Book Antiqua', Georgia, serif !important;
+    --font-sans: 'Cormorant Garamond', 'Georgia', serif !important;
+    --er-gold: #c9ab72;
+    --er-gold-bright: #f7e2b2;
+    --er-gold-pale: #fff6dc;
+  }
+
+  .bg-vignette {
+    background: radial-gradient(circle at 50% 35%, transparent 42%, rgba(4, 3, 2, 0.68) 92%, rgba(2, 2, 1, 0.90) 100%) !important;
+  }
+
+  header {
+    background: linear-gradient(180deg, rgba(11, 10, 8, 0.92) 0%, rgba(9, 8, 6, 0.78) 100%) !important;
+    border-bottom: 1px solid rgba(168, 136, 78, 0.35) !important;
+  }
+  .brand h1 {
+    font-size: 1.36rem !important;
+    letter-spacing: 0.21em !important;
+    background: linear-gradient(180deg, #fff8e2 0%, #e4c485 58%, #9c7a3e 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+  }
+
+  .group-header {
+    background: linear-gradient(90deg, transparent 0%, rgba(201, 171, 114, 0.12) 15%, rgba(201, 171, 114, 0.04) 75%, transparent 100%) !important;
+    border-left: none !important;
+    border-top: 1px solid rgba(201, 171, 114, 0.22) !important;
+    border-bottom: 1px solid rgba(201, 171, 114, 0.36) !important;
+    padding: 9px 14px !important;
+    letter-spacing: 0.18em !important;
+  }
+
+  .portrait-frame, .tile-img {
+    background: radial-gradient(ellipse at 50% 62%, rgba(212, 172, 96, 0.13) 0%, rgba(12, 10, 8, 0.15) 68%, transparent 100%) !important;
+    border: none !important;
+    border-bottom: 1px solid rgba(201, 171, 114, 0.32) !important;
+    box-shadow: none !important;
+  }
+  .portrait-frame::after { display: none !important; }
+
+  .armor-card {
+    padding: 15px 18px !important;
+    gap: 20px !important;
+    background: linear-gradient(135deg, rgba(20, 17, 13, 0.46) 0%, rgba(11, 10, 8, 0.42) 100%) !important;
+    border: 1px solid rgba(142, 114, 64, 0.38) !important;
+    box-shadow: inset 0 1px 0 rgba(247, 226, 178, 0.10), 0 6px 20px rgba(0, 0, 0, 0.42) !important;
+  }
+  .armor-card:hover {
+    background: linear-gradient(135deg, rgba(32, 27, 19, 0.70) 0%, rgba(17, 15, 11, 0.65) 100%) !important;
+    border-color: rgba(247, 226, 178, 0.72) !important;
+  }
+
+  .grid-tile {
+    padding: 16px 12px 13px !important;
+    background: linear-gradient(180deg, rgba(22, 19, 14, 0.48) 0%, rgba(11, 10, 8, 0.44) 100%) !important;
+    border: 1px solid rgba(142, 114, 64, 0.38) !important;
+    box-shadow: inset 0 1px 0 rgba(247, 226, 178, 0.11), 0 6px 18px rgba(0, 0, 0, 0.40) !important;
+  }
+  .grid-tile:hover {
+    background: linear-gradient(180deg, rgba(36, 30, 21, 0.74) 0%, rgba(18, 15, 11, 0.68) 100%) !important;
+    border-color: rgba(247, 226, 178, 0.78) !important;
+    transform: translateY(-2px);
+  }
+
+  .set-title {
+    font-size: 1.11rem !important;
+    letter-spacing: 0.05em !important;
+    color: var(--er-gold-bright) !important;
+  }
+  .guide-text {
+    max-width: 74ch;
+    font-size: 1.04rem !important;
+    line-height: 1.60 !important;
+    color: #e8e1cf !important;
+  }
+  .guide-text b {
+    color: var(--er-gold-pale) !important;
+    font-weight: 700 !important;
+    letter-spacing: 0.01em;
+  }
+
+  .badge {
+    font-size: 0.69rem !important;
+    letter-spacing: 0.09em !important;
+    padding: 2px 9px !important;
+    border-radius: 1px !important;
+  }
+
+  .set-diamond {
+    transition: transform 0.25s ease, border-color 0.2s ease, box-shadow 0.2s ease !important;
+  }
+  .set-diamond:hover {
+    transform: rotate(45deg) scale(1.1);
+  }
+</style>
+
+</body>
+</html>

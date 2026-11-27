@@ -1198,7 +1198,11 @@
         <button class="pill" data-filter="missing" onclick="setFilter('missing', this)">Не собрано</button>
         <button class="pill" data-filter="dlc" onclick="setFilter('dlc', this)">Только DLC</button>
       </div>
-      <div class="toolbar-right-group"><select class="search-box cat-select" disabled style="opacity:0.55;cursor:default"><option>Все комплекты (191)</option></select><div class="search-wrap"><input type="text" class="search-box" id="searchInput" placeholder="Поиск по сету, части брони, локации или благодати..." oninput="renderArmor()"><button type="button" class="search-clear" onclick="const i=this.previousElementSibling;i.value=\'\';i.dispatchEvent(new Event(\'input\'));i.focus();" title="Очистить">✕</button></div></div>
+      <div class="toolbar-right-group"><select class="search-box cat-select" id="catSelect-armor" style="min-width:190px;cursor:pointer" onchange="renderArmor()">
+  <option value="all">Все категории брони</option>
+  <option value="sets">Комплекты Погасшего</option>
+  <option value="torrent">Броня на Торрента</option>
+</select><div class="search-wrap"><input type="text" class="search-box" id="searchInput" placeholder="Поиск по сету, части брони, локации или благодати..." oninput="renderArmor()"><button type="button" class="search-clear" onclick="const i=this.previousElementSibling;i.value=\'\';i.dispatchEvent(new Event(\'input\'));i.focus();" title="Очистить">✕</button></div></div>
 
       <div class="view-controls-row">
         <div class="view-toggle" id="viewToggle-armor">
@@ -1427,9 +1431,9 @@
 <script>
 (function() {
     const parts = [
-    ['armor_part', 1, 14],
-    ['weapon_part', 1, 20],
-    ['shield_part', 1, 4],
+    ['armor_part', 1, 15],
+    ['weapon_part', 1, 21],
+    ['shield_part', 1, 5],
     ['spell_part', 1, 11],
     ['ash_part', 1, 6]
   ];
@@ -1870,7 +1874,10 @@ function renderArmor() {
       card.id = 'card_' + set.id;
       card.className = 'armor-card' + (done ? ' completed' : '');
 
-      const slotsHtml = set.slots.map((slotName, idx) => {
+      const isTorrent = set.category === 'torrent' || !!set.torrent;
+      const slotsHtml = isTorrent
+        ? '<div class="slot-row ' + (arr[0] ? 'owned' : '') + '" onclick="toggleTorrentArmor(\'' + set.id + '\'); openDetailModal(\'armor\', \'' + set.id + '\')"><span class="rune-box"></span><span>Снаряжение скакуна</span></div>'
+        : set.slots.map((slotName, idx) => {
         if (!slotName) {
           return `<div class="slot-row na"><span class="rune-box"></span><span>${SLOT_LABELS[idx]} (нет в сете)</span></div>`;
         }
@@ -2938,19 +2945,56 @@ window.addEventListener('DOMContentLoaded', () => {
   };
   window.closeDetailModal = function() { const m = document.getElementById('detailModal'); if (m) m.classList.remove('open'); };
 
+    window.toggleTorrentArmor = function(setId) {
+    const set = ARMOR_MAP[setId];
+    if (!set) return;
+    const done = isSetComplete(set);
+    const next = !done;
+    state[setId] = set.slots.map(s => s === null ? true : next);
+    saveState();
+    renderArmor();
+    showToast(next ? `«${set.name}» получено` : `Отметка снята: «${set.name}»`);
+  };
+
   renderArmor = function() {
     rebuildArmorList(); syncClearBtn('searchInput');
     const q = document.getElementById('searchInput').value.trim();
+    const catSel = document.getElementById('catSelect-armor');
+    const selectedCat = catSel ? catSel.value : 'all';
     const container = document.getElementById('armorContainer'); container.innerHTML = '';
-    const matchSet = (set) => !q || smartMatch([set.name, ...(set.slots || []), set.graceRu].join(' '), q);
-    if (q && currentFilter !== 'all') {
-      const ok = ARMOR_SETS.some(set => currentFilter === 'missing' ? (!isSetComplete(set) && matchSet(set)) : (currentFilter === 'dlc' ? (!!set.dlc && matchSet(set)) : (set.type === currentFilter && matchSet(set))));
-      if (!ok) { currentFilter = 'all'; document.querySelectorAll('#tab-armor .pill').forEach(p => p.classList.toggle('active', p.dataset.filter === 'all')); }
+
+    const matchCat = (set) => {
+      const isTorrent = set.category === 'torrent' || !!set.torrent;
+      if (selectedCat === 'torrent') return isTorrent;
+      if (selectedCat === 'sets') return !isTorrent;
+      return true;
+    };
+
+    const matchSet = (set) => !q || smartMatch([set.name, ...(set.slots || []), set.graceRu, (set.category === 'torrent' || set.torrent) ? 'броня на торрента скакун' : ''].join(' '), q);
+
+    if (q && (currentFilter !== 'all' || selectedCat !== 'all')) {
+      const ok = ARMOR_SETS.some(set =>
+        matchCat(set) &&
+        (currentFilter === 'missing' ? !isSetComplete(set) : (currentFilter === 'dlc' ? !!set.dlc : (currentFilter === 'all' || set.type === currentFilter))) &&
+        matchSet(set)
+      );
+      if (!ok) {
+        currentFilter = 'all';
+        document.querySelectorAll('#tab-armor .pill').forEach(p => p.classList.toggle('active', p.dataset.filter === 'all'));
+        if (catSel) catSel.value = 'all';
+      }
     }
+
+    const activeCat = catSel ? catSel.value : 'all';
     const viewMode = VIEW_MODES.armor || 'list', sortMode = SORT_MODES.armor || 'default', frag = document.createDocumentFragment();
     ['farm', 'buy', 'loot', 'reward'].forEach(g => {
       if (!['all', 'missing', 'dlc'].includes(currentFilter) && currentFilter !== g) return;
-      let items = ARMOR_SETS.filter(set => set.type === g && (currentFilter !== 'missing' || !isSetComplete(set)) && (currentFilter !== 'dlc' || set.dlc) && matchSet(set));
+      let items = ARMOR_SETS.filter(set => {
+        const isTorrent = set.category === 'torrent' || !!set.torrent;
+        if (activeCat === 'torrent' && !isTorrent) return false;
+        if (activeCat === 'sets' && isTorrent) return false;
+        return set.type === g && (currentFilter !== 'missing' || !isSetComplete(set)) && (currentFilter !== 'dlc' || set.dlc) && matchSet(set);
+      });
       if (!items.length) return;
       const doneInGroup = items.filter(isSetComplete).length;
       items = sortArray(items, sortMode, isSetComplete);
@@ -2961,16 +3005,28 @@ window.addEventListener('DOMContentLoaded', () => {
       const list = document.createElement('div'); list.className = viewMode === 'grid' ? 'cards-grid' : 'cards-list';
       items.forEach(set => {
         const done = isSetComplete(set), arr = state[set.id] || set.slots.map(s => s === null), [bText, bCls] = GROUP_BADGES[set.type];
+        const isTorrent = set.category === 'torrent' || !!set.torrent;
+        const torrentBadge = isTorrent ? '<span class="badge" style="background:rgba(200,168,107,0.14);color:var(--gold-bright);border:1px solid var(--gold-dim)">Броня на Торрента</span>' : '';
+
         if (viewMode === 'grid') {
           const valid = set.slots.filter(Boolean).length, owned = set.slots.reduce((a, s, i) => a + (s && arr[i] ? 1 : 0), 0);
           const tile = document.createElement('div'); tile.id = 'card_' + set.id; tile.className = 'grid-tile' + (done ? ' completed' : '');
           tile.onclick = (e) => { if (!e.target.closest('.set-diamond')) openDetailModal('armor', set.id); };
-          tile.innerHTML = '<div class="set-diamond tile-diamond ' + (done ? 'checked' : '') + '" onclick="toggleSet(\'' + set.id + '\')"></div><span class="tile-slots-badge">' + owned + '/' + valid + '</span><div class="tile-img"><img src="wiki_images/' + set.id + '.png" loading="lazy" onerror="this.parentElement.innerHTML=\'<div class=no-photo-stub>НЕТ ФОТО</div>\'"></div><div class="tile-name">' + set.name + '</div>';
+          tile.innerHTML = '<div class="set-diamond tile-diamond ' + (done ? 'checked' : '') + '" onclick="toggleSet(\'' + set.id + '\')"></div>' +
+            (isTorrent ? '' : '<span class="tile-slots-badge">' + owned + '/' + valid + '</span>') +
+            '<div class="tile-img"><img src="wiki_images/' + set.id + '.png" loading="lazy" onerror="this.parentElement.innerHTML=\'<div class=no-photo-stub>НЕТ ФОТО</div>\'"></div><div class="tile-name">' + set.name + '</div>';
           list.appendChild(tile);
         } else {
           const card = document.createElement('div'); card.id = 'card_' + set.id; card.className = 'armor-card' + (done ? ' completed' : '');
-          const slotsHtml = set.slots.map((s, idx) => !s ? '<div class="slot-row na"><span class="rune-box"></span><span>' + SLOT_LABELS[idx] + ' (нет в сете)</span></div>' : '<div class="slot-row ' + (arr[idx] ? 'owned' : '') + '" onclick="toggleSlot(\'' + set.id + '\', ' + idx + ')" title="' + s + '"><span class="rune-box"></span><span>' + SLOT_LABELS[idx] + '</span></div>').join('');
-          card.innerHTML = '<div class="card-left"><div class="set-diamond ' + (done ? 'checked' : '') + '" onclick="toggleSet(\'' + set.id + '\')"></div><div class="portrait-frame"><img src="wiki_images/' + set.id + '.png" loading="lazy" onerror="this.parentElement.innerHTML=\'<div class=no-photo-stub>НЕТ ФОТО</div>\'"></div></div><div class="card-center"><div class="title-row"><span class="set-title">' + set.name + '</span><span class="badge ' + bCls + '">' + bText + '</span></div><div class="action-links"><a class="btn-link" href="' + set.wiki + '" target="_blank" rel="noopener">RU Вики ↗</a><button class="btn-link" onclick="openMap(&quot;' + set.graceEn + '&quot;, ' + set.dlc + ')">Карта ⌖ (' + set.graceRu + ')</button></div><div class="guide-text">' + set.guide + '</div></div><div class="card-right">' + slotsHtml + '</div>';
+          let slotsHtml = '';
+          if (isTorrent) {
+            const singleIdx = set.slots.findIndex(Boolean);
+            const idx = singleIdx >= 0 ? singleIdx : 0;
+            slotsHtml = '<div class="slot-row ' + (arr[idx] ? 'owned' : '') + '" onclick="toggleTorrentArmor(\'' + set.id + '\')" title="' + (set.slots[idx] || set.name) + '"><span class="rune-box"></span><span>Снаряжение скакуна</span></div>';
+          } else {
+            slotsHtml = set.slots.map((s, idx) => !s ? '<div class="slot-row na"><span class="rune-box"></span><span>' + SLOT_LABELS[idx] + ' (нет в сете)</span></div>' : '<div class="slot-row ' + (arr[idx] ? 'owned' : '') + '" onclick="toggleSlot(\'' + set.id + '\', ' + idx + ')" title="' + s + '"><span class="rune-box"></span><span>' + SLOT_LABELS[idx] + '</span></div>').join('');
+          }
+          card.innerHTML = '<div class="card-left"><div class="set-diamond ' + (done ? 'checked' : '') + '" onclick="toggleSet(\'' + set.id + '\')"></div><div class="portrait-frame"><img src="wiki_images/' + set.id + '.png" loading="lazy" onerror="this.parentElement.innerHTML=\'<div class=no-photo-stub>НЕТ ФОТО</div>\'"></div></div><div class="card-center"><div class="title-row"><span class="set-title">' + set.name + '</span><span class="badge ' + bCls + '">' + bText + '</span>' + torrentBadge + '</div><div class="action-links"><a class="btn-link" href="' + set.wiki + '" target="_blank" rel="noopener">RU Вики ↗</a><button class="btn-link" onclick="openMap(&quot;' + set.graceEn + '&quot;, ' + set.dlc + ')">Карта ⌖ (' + set.graceRu + ')</button></div><div class="guide-text">' + set.guide + '</div></div><div class="card-right">' + slotsHtml + '</div>';
           list.appendChild(card);
         }
       });
